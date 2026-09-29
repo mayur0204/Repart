@@ -21,5 +21,10 @@ export default defineConfig([
       ],
     },
   },
+  {
+    // The Icon wrapper is the one place lucide-react may be imported.
+    files: ["src/components/ui/icon.tsx"],
+    rules: { "no-restricted-imports": "off" },
+  },
   globalIgnores([".next/**", "node_modules/**", "src/generated/**", "coverage/**", "playwright-report/**", "test-results/**", "next-env.d.ts"]),
 ]);

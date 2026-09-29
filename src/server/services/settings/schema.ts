@@ -9,6 +9,7 @@ import { z } from "zod";
 const hours = z.number().int().positive();
 const percent = z.number().min(0).max(100);
 const score = z.number().int().min(0).max(100);
+const rateLimit = z.object({ points: z.number().int().positive(), windowSeconds: z.number().int().positive() });
 
 export const settingsSchema = z.object({
   fees: z.object({
@@ -59,7 +60,24 @@ export const settingsSchema = z.object({
   storage: z.object({
     signedUrlTtlSeconds: z.number().int().positive(),
   }),
-});
+  // PLAN.md §1.2 "Rate limiting" (brief §11). Development defaults, not given in the brief.
+  rateLimits: z.object({
+    otpSendPerPhone: rateLimit,
+    otpSendPerIp: rateLimit,
+    otpVerifyAttempts: rateLimit,
+    messagesPerUser: rateLimit,
+    listingSubmissionsPerUser: rateLimit,
+  }),
+})
+  .superRefine((s, ctx) => {
+    const order = (path: string[], ok: boolean, message: string) => {
+      if (!ok) ctx.addIssue({ code: "custom", path, message });
+    };
+    order(["risk", "adminReviewThreshold"], s.risk.lowRiskThreshold < s.risk.adminReviewThreshold, "must be above lowRiskThreshold");
+    order(["risk", "maxBrightness"], s.risk.minBrightness < s.risk.maxBrightness, "must be above minBrightness");
+    order(["grading", "goodMin"], s.grading.fairMin < s.grading.goodMin, "must be above fairMin");
+    order(["grading", "likeNewMin"], s.grading.goodMin < s.grading.likeNewMin, "must be above goodMin");
+  });
 
 export type Settings = z.infer<typeof settingsSchema>;
 
@@ -100,4 +118,11 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   grading: { likeNewMin: 90, goodMin: 70, fairMin: 40 },
   storage: { signedUrlTtlSeconds: 600 },
+  rateLimits: {
+    otpSendPerPhone: { points: 5, windowSeconds: 3600 },
+    otpSendPerIp: { points: 20, windowSeconds: 3600 },
+    otpVerifyAttempts: { points: 5, windowSeconds: 900 },
+    messagesPerUser: { points: 30, windowSeconds: 600 },
+    listingSubmissionsPerUser: { points: 10, windowSeconds: 86400 },
+  },
 };

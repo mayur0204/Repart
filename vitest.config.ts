@@ -1,7 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-const alias = { "@": fileURLToPath(new URL("./src", import.meta.url)) };
+const alias = {
+  "@": fileURLToPath(new URL("./src", import.meta.url)),
+  // Vitest runs outside the react-server condition; server modules are tested directly.
+  "server-only": fileURLToPath(new URL("./node_modules/server-only/empty.js", import.meta.url)),
+};
 
 export default defineConfig({
   test: {
