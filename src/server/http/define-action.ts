@@ -16,7 +16,7 @@ import { FieldError, ForbiddenError, NotFoundError, NotSignedInError, RateLimite
  */
 export type Access = "public" | "member" | readonly Role[];
 
-export type ActionState = { ok: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
+export type ActionState = { ok: boolean; message?: string; fieldErrors?: Record<string, string>; data?: Record<string, unknown> } | null;
 
 export type ActionContext<A extends Access> = {
   user: A extends "public" ? SessionUser | null : SessionUser;

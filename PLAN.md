@@ -1627,6 +1627,17 @@ Current `.env` (variable **names** checked, values never read or printed): `DATA
 | D-10 | Q1 → **Model S.** One platform fee. Buyer total = item + delivery + check fee. Seller payout = item − platform fee. Merchant share = delivery + check fee + platform fee. The buyer breakdown shows the fee as "deducted from seller payout", not added to the total. | §7.1 |
 | D-11 | Q2 → For M4, photo-guide examples are clearly labelled SAMPLE placeholders until real approved examples are supplied. No invented real-world photos or data. | A-23 |
 | D-12 | Q3 → For M6, a small clearly labelled SAMPLE `PincodeGeo` dataset for development. No real dataset sourced yet. | A-24 |
+| D-13 | M4 → A listing requires an existing catalogue `PartNumber` to be submitted (Step 2 of the listing wizard). This replaces the brief's "optional part number" (§9 Selling, Step 2) for M4. A number that isn't in the catalogue can't be used; sellers are told to check the number. Listings without an identified part number are a future enhancement (§14.1.1), not live. | §4.4, §6.6, §9 M4 |
+
+#### 14.1.1 Future enhancement: sellers who don't know the part number (not implemented)
+Recorded with D-13. **Status: planned only.** Nothing in M4 implements it: no unidentified-part flow, schema, UI or tests.
+
+- **Now (M4):** Step 2 requires an existing catalogue part number before the listing can be submitted (L1/L2 guards).
+- **Later:** a seller may mark "I don't know the part number" and provide what they have (category, bike, description, photos, markings).
+- **No bypass:** such a listing must not skip catalogue identification or the fitment safety rules (§6.6, safety-critical filtering). It stays out of normal publication until a catalogue part number is identified.
+- **Human identification:** a mechanic or admin identifies or confirms the catalogue `PartNumber` (adding it to the catalogue through the M3 admin flow if needed). The listing then continues through the normal submit → screening path.
+- **AI suggestions:** automated identification (e.g. through the `VisionProvider` adapter) may be considered later as a suggestion only, with human confirmation where appropriate. It never sets the part number on its own.
+- **Milestone fit:** designed to integrate with the mechanic portal in M10 (assignment, job list, job detail). Scheduling is to be decided when M10 is planned; it needs an owner decision on schema and states before any build.
 
 ### 14.2 Open questions (only ones that need your decision)
 

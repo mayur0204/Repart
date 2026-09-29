@@ -9,14 +9,15 @@ import { ForbiddenError, NotFoundError, NotSignedInError, RateLimitedError, User
 /** Route-handler counterpart of defineAction: access check + JSON errors. */
 export function defineRoute<A extends Access>(
   opts: { access: A },
-  handler: (req: Request, ctx: { user: SessionUser | null; requestId: string }) => Promise<Response>,
+  handler: (req: Request, ctx: { user: A extends "public" ? SessionUser | null : SessionUser; requestId: string; params: Record<string, string> }) => Promise<Response>,
 ) {
-  const route = async (req: Request): Promise<Response> => {
+  const route = async (req: Request, routeContext?: { params?: Promise<Record<string, string>> }): Promise<Response> => {
     const requestId = randomUUID();
     try {
       const user = opts.access === "public" ? null : await getCurrentUser();
       authorize(opts.access, user);
-      return await handler(req, { user, requestId });
+      const params = (await routeContext?.params) ?? {};
+      return await handler(req, { user: user as never, requestId, params });
     } catch (err) {
       const status =
         err instanceof NotSignedInError ? 401

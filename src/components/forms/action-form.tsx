@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
 
 /** Mirrors ActionState in src/server/http/define-action.ts (kept structural so this stays client-safe). */
-export type FormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string> } | null;
+export type FormState = { ok: boolean; message?: string; fieldErrors?: Record<string, string>; data?: Record<string, unknown> } | null;
 export type FormAction = (prev: FormState, formData: FormData) => Promise<FormState>;
 
 const FormStateContext = createContext<{ state: FormState; pending: boolean }>({ state: null, pending: false });

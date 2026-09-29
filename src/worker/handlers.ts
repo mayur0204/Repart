@@ -1,6 +1,7 @@
 import "server-only";
 import { jobSchema, type QueueName } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
+import { photos } from "@/server/services";
 
 export type Handler = (payload: unknown, meta: { jobId: string | undefined }) => Promise<void>;
 
@@ -12,6 +13,18 @@ export const HANDLERS: Record<QueueName, Record<string, Handler>> = {
   system: {
     ping: async (_payload, meta) => {
       logger.info({ jobId: meta.jobId }, "system.ping handled");
+    },
+  },
+  photos: {
+    process: async (payload, meta) => {
+      const result = await photos.process((payload as { photoId: string }).photoId);
+      logger.info({ jobId: meta.jobId, result }, "photos.process handled");
+    },
+  },
+  risk: {
+    check: async (_payload, meta) => {
+      // The risk pipeline is M5. The listing stays SUBMITTED until then.
+      logger.info({ jobId: meta.jobId }, "risk.check received (pipeline arrives in M5)");
     },
   },
   notifications: {

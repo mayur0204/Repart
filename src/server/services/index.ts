@@ -7,6 +7,8 @@ import * as catalogueAdmin from "./catalogue/admin";
 import * as categoryService from "./catalogue/categories";
 import * as importService from "./catalogue/import";
 import * as interchangeService from "./interchange/interchange";
+import * as listingService from "./listing/listing";
+import * as photoService from "./listing/photos";
 import * as signInService from "./auth/sign-in";
 import * as catalogueService from "./catalogue/vehicles";
 import * as consentService from "./consent/consent";
@@ -104,4 +106,32 @@ export const imports = {
     importService.createImport(db, importDeps(), ...args),
   apply: (...args: Parameters<typeof importService.applyImport> extends [unknown, unknown, ...infer R] ? R : never) =>
     importService.applyImport(db, importDeps(), ...args),
+};
+
+export const listings = bind({
+  createDraft: listingService.createDraft,
+  wizard: listingService.getWizardState,
+  saveBike: listingService.saveBike,
+  findPartNumbers: listingService.findCataloguePartNumbers,
+  suggestedVariants: listingService.suggestedVariants,
+  savePart: listingService.savePart,
+  saveCondition: listingService.saveCondition,
+  saveDetails: listingService.saveDetails,
+  savePrice: listingService.savePrice,
+  submit: listingService.submitListing,
+  withdraw: listingService.withdrawListing,
+  comparablePrice: listingService.comparablePriceRange,
+  sellerListings: listingService.listSellerListings,
+});
+
+const photoDeps = (): photoService.PhotoDeps => ({ storage: adapters().storage, bucket: env().STORAGE_BUCKET_LISTING_PHOTOS });
+
+export const photos = {
+  requestUpload: (actor: { userId: string; requestId?: string }, input: Parameters<typeof photoService.requestPhotoUpload>[3]) =>
+    photoService.requestPhotoUpload(db, photoDeps(), actor, input),
+  confirmUpload: (actor: { userId: string; requestId?: string }, photoId: string) => photoService.confirmPhotoUpload(db, actor, photoId),
+  remove: (actor: { userId: string; requestId?: string }, photoId: string) => photoService.deletePhoto(db, photoDeps(), actor, photoId),
+  move: (actor: { userId: string; requestId?: string }, photoId: string, to: "up" | "down" | "first") => photoService.movePhoto(db, actor, photoId, to),
+  listForOwner: (userId: string, listingId: string) => photoService.listPhotosForOwner(db, photoDeps(), userId, listingId),
+  process: (photoId: string) => photoService.processListingPhoto(db, photoDeps(), photoId),
 };
