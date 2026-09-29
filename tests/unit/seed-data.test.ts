@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { CATEGORIES } from "../../prisma/seed/data/categories";
 import { SAMPLE_LINKS, SAMPLE_MAKES, SAMPLE_PART_NUMBERS, SAMPLE_PINCODES } from "../../prisma/seed/data/catalogue";
-import { resolveSeedTarget } from "../../prisma/seed/seed";
+import { resolveSeedTarget, SAMPLE_CONSENT_VERSION } from "../../prisma/seed/seed";
 import { normalizePartNumber } from "../../src/lib/part-number";
+import { CONSENT_POLICY_VERSION } from "../../src/server/services/consent/consent";
 import { DEFAULT_SETTINGS, settingsSchema } from "../../src/server/services/settings/schema";
 
 const tierOf = (slug: string) => CATEGORIES.find((c) => c.slug === slug)?.inspectionTier;
@@ -63,6 +64,10 @@ describe("settings and seed guards", () => {
     expect(s.orders.providerMaxHoldDays).toBe(45);
     expect(s.orders.disputeDeadlineWarningDays).toBe(7);
     expect(s.inspections.auditPercent).toBe(5);
+  });
+
+  it("SAMPLE users consent at the current policy version, so they skip about-you", () => {
+    expect(SAMPLE_CONSENT_VERSION).toBe(CONSENT_POLICY_VERSION);
   });
 
   it("seed requires an explicit target and refuses production", () => {

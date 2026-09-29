@@ -56,6 +56,33 @@ export function Input({ label, help, error, id, className, ...props }: FieldChro
   );
 }
 
+/** Square checkbox (no radius, no native styling). The tick is drawn with an SVG when checked. */
+export function Checkbox({
+  label,
+  description,
+  className,
+  ...props
+}: { label: ReactNode; description?: ReactNode } & Omit<ComponentProps<"input">, "type">) {
+  return (
+    <label className={cn("flex cursor-pointer items-start gap-3 py-1", className)}>
+      <span className="relative mt-0.5 flex size-6 shrink-0 items-center justify-center">
+        <input
+          type="checkbox"
+          className="peer size-6 cursor-pointer border border-ink bg-surface checked:border-action checked:bg-action disabled:cursor-not-allowed disabled:border-rule disabled:bg-page"
+          {...props}
+        />
+        <svg aria-hidden="true" viewBox="0 0 16 16" className="pointer-events-none absolute hidden size-4 text-surface peer-checked:block">
+          <path d="M3 8.5l3.5 3.5L13 4.5" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      </span>
+      <span className="flex flex-col">
+        <span className="font-semibold">{label}</span>
+        {description ? <span className="text-sm text-steel">{description}</span> : null}
+      </span>
+    </label>
+  );
+}
+
 export function Select({
   label,
   help,

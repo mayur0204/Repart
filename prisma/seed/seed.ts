@@ -33,6 +33,13 @@ import {
   SAMPLE_VARIANTS,
 } from "./data/catalogue";
 
+/**
+ * Consent version given to SAMPLE users. Must equal CONSENT_POLICY_VERSION in
+ * src/server/services/consent/consent.ts (not imported: that module is server-only);
+ * tests/unit/seed-data.test.ts keeps them in sync.
+ */
+export const SAMPLE_CONSENT_VERSION = "2026-09-01";
+
 // ───────────────────────────── target & guards ─────────────────────────────
 
 export function resolveSeedTarget(
@@ -169,8 +176,8 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<void> {
     await db.user.upsert({ where: { id: u.id }, create: { id: u.id, ...data }, update: data });
     await db.consentRecord.upsert({
       where: { id: `${u.id}-consent` },
-      create: { id: `${u.id}-consent`, userId: u.id, purpose: "ACCOUNT_AND_ORDERS", version: "sample-2026-09", grantedAt: ago(90 * DAY) },
-      update: {},
+      create: { id: `${u.id}-consent`, userId: u.id, purpose: "ACCOUNT_AND_ORDERS", version: SAMPLE_CONSENT_VERSION, grantedAt: ago(90 * DAY) },
+      update: { version: SAMPLE_CONSENT_VERSION, withdrawnAt: null },
     });
   }
 
