@@ -45,6 +45,12 @@ export async function requireMemberPage(path: string, opts: { roles?: Role[] } =
   return user;
 }
 
+/** For admin pages: returns the admin, or null when the signed-in user isn't an admin (render PermissionDenied). */
+export async function adminPage(path: string): Promise<SessionUser | null> {
+  const user = await requireMemberPage(path);
+  return user.roles.includes("ADMIN") ? user : null;
+}
+
 export async function clientIp(): Promise<string> {
   const h = await headers();
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";

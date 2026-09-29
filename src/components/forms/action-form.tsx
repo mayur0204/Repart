@@ -2,7 +2,7 @@
 
 import { createContext, useActionState, useContext, useEffect, type ComponentProps, type ReactNode } from "react";
 import { Button, type ButtonVariant } from "@/components/ui/button";
-import { Input, Select } from "@/components/ui/field";
+import { Input, Select, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
@@ -70,6 +70,11 @@ export function FormInput(props: ComponentProps<typeof Input> & { name: string }
 export function FormSelect(props: ComponentProps<typeof Select> & { name: string }) {
   const { state } = useFormState();
   return <Select {...props} error={props.error ?? state?.fieldErrors?.[props.name]} />;
+}
+
+export function FormTextarea(props: ComponentProps<typeof Textarea> & { name: string }) {
+  const { state } = useFormState();
+  return <Textarea {...props} error={props.error ?? state?.fieldErrors?.[props.name]} />;
 }
 
 /** A one-button form, e.g. "Make primary" or "Delete". Pass hidden fields as children. */

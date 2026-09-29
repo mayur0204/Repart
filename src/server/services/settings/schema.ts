@@ -67,6 +67,8 @@ export const settingsSchema = z.object({
     otpVerifyAttempts: rateLimit,
     messagesPerUser: rateLimit,
     listingSubmissionsPerUser: rateLimit,
+    // Added in M3. The default keeps versions saved before M3 valid.
+    interchangeSuggestionsPerUser: rateLimit.default({ points: 10, windowSeconds: 86400 }),
   }),
 })
   .superRefine((s, ctx) => {
@@ -124,5 +126,6 @@ export const DEFAULT_SETTINGS: Settings = {
     otpVerifyAttempts: { points: 5, windowSeconds: 900 },
     messagesPerUser: { points: 30, windowSeconds: 600 },
     listingSubmissionsPerUser: { points: 10, windowSeconds: 86400 },
+    interchangeSuggestionsPerUser: { points: 10, windowSeconds: 86400 },
   },
 };

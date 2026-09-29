@@ -56,6 +56,22 @@ export function Input({ label, help, error, id, className, ...props }: FieldChro
   );
 }
 
+export function Textarea({ label, help, error, id, className, ...props }: FieldChrome & ComponentProps<"textarea">) {
+  const autoId = useId();
+  const fieldId = id ?? autoId;
+  return (
+    <FieldFrame id={fieldId} label={label} help={help} error={error}>
+      <textarea
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(fieldId, help, error)}
+        className={cn(controlClasses(error), "min-h-32 py-2", className)}
+        {...props}
+      />
+    </FieldFrame>
+  );
+}
+
 /** Square checkbox (no radius, no native styling). The tick is drawn with an SVG when checked. */
 export function Checkbox({
   label,

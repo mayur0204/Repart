@@ -33,11 +33,14 @@ export function authorize(access: Access, user: SessionUser | null): void {
   if (!access.some((role) => user.roles.includes(role))) throw new ForbiddenError();
 }
 
-/** FormData → plain object. Repeated keys become arrays; File entries are dropped (uploads use signed URLs). */
-export function formDataToObject(formData: FormData): Record<string, unknown> {
+/**
+ * FormData → plain object. Repeated keys become arrays. File entries are dropped unless `keepFiles`
+ * is set: photos use signed uploads, and only small admin files (CSV imports) pass through actions.
+ */
+export function formDataToObject(formData: FormData, keepFiles = false): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [key, value] of formData.entries()) {
-    if (key.startsWith("$ACTION") || typeof value !== "string") continue;
+    if (key.startsWith("$ACTION") || (typeof value !== "string" && !keepFiles)) continue;
     const prev = out[key];
     out[key] = prev === undefined ? value : Array.isArray(prev) ? [...prev, value] : [prev, value];
   }
@@ -71,7 +74,7 @@ export function toActionState(err: unknown, requestId: string): ActionState {
 }
 
 export function defineAction<S extends z.ZodType, A extends Access>(
-  opts: { input: S; access: A },
+  opts: { input: S; access: A; files?: boolean },
   handler: (input: z.infer<S>, ctx: ActionContext<A>) => Promise<ActionState | void>,
 ) {
   const action = async (_prev: ActionState, formData: FormData): Promise<ActionState> => {
@@ -79,7 +82,7 @@ export function defineAction<S extends z.ZodType, A extends Access>(
     try {
       const user = await getCurrentUser();
       authorize(opts.access, user);
-      const input = opts.input.parse(formDataToObject(formData));
+      const input = opts.input.parse(formDataToObject(formData, opts.files));
       const ctx = { user, ip: await clientIp(), requestId } as ActionContext<A>;
       return (await handler(input, ctx)) ?? { ok: true };
     } catch (err) {
