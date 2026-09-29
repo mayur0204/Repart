@@ -6,6 +6,8 @@ const NAV = [
   { href: "/admin/categories", label: "Categories" },
   { href: "/admin/catalogue/import", label: "CSV import" },
   { href: "/admin/interchange", label: "Interchange" },
+  { href: "/admin/listings", label: "Listing review" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 /** Admin section frame. Access is checked by each page (adminPage) and each action (defineAction). */

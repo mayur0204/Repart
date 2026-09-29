@@ -9,6 +9,9 @@ import * as importService from "./catalogue/import";
 import * as interchangeService from "./interchange/interchange";
 import * as listingService from "./listing/listing";
 import * as photoService from "./listing/photos";
+import * as riskPipeline from "./risk/pipeline";
+import * as riskReview from "./risk/review";
+import * as settingsService from "./settings/settings";
 import * as signInService from "./auth/sign-in";
 import * as catalogueService from "./catalogue/vehicles";
 import * as consentService from "./consent/consent";
@@ -135,3 +138,23 @@ export const photos = {
   listForOwner: (userId: string, listingId: string) => photoService.listPhotosForOwner(db, photoDeps(), userId, listingId),
   process: (photoId: string) => photoService.processListingPhoto(db, photoDeps(), photoId),
 };
+
+const riskDeps = (): riskPipeline.RiskDeps => ({ storage: adapters().storage, bucket: env().STORAGE_BUCKET_LISTING_PHOTOS, vision: adapters().vision });
+
+export const risk = {
+  run: (listingId: string) => riskPipeline.runRiskCheck(db, riskDeps(), listingId),
+  reviewQueue: () => riskReview.listingReviewQueue(db),
+  detail: (listingId: string) => riskReview.listingRiskDetail(db, photoDeps(), listingId),
+  requestChanges: (actor: { userId: string; requestId?: string }, input: { listingId: string; reason: string }) => riskReview.adminRequestChanges(db, actor, input),
+  reject: (actor: { userId: string; requestId?: string }, input: { listingId: string; reason: string }) => riskReview.adminReject(db, actor, input),
+  clearReview: (actor: { userId: string; requestId?: string }, listingId: string, note?: string) => riskReview.clearListingReview(db, actor, listingId, note),
+  statusForOwner: (userId: string, listingId: string) => riskReview.screeningStatusForOwner(db, userId, listingId),
+};
+
+export const settings = bind({
+  active: settingsService.getActiveSettings,
+  version: settingsService.getSettingsVersion,
+  versions: settingsService.listSettingsVersions,
+  create: settingsService.createSettingsVersion,
+  activate: settingsService.activateSettingsVersion,
+});

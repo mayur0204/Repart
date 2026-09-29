@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { defineAction } from "@/server/http/define-action";
 import { UserError } from "@/server/http/errors";
-import { catalogueAdminService as catalogue, categories, imports, interchange } from "@/server/services";
+import { catalogueAdminService as catalogue, categories, imports, interchange, risk, settings } from "@/server/services";
 
 /** Admin-only catalogue, category, import and interchange actions (PLAN.md §4.8, M3). */
 const ADMIN = ["ADMIN"] as const;
@@ -127,3 +127,39 @@ export const reviewLink = defineAction(
     return { ok: true, message: input.decision === "APPROVE" ? "Link approved" : input.decision === "REJECT" ? "Link rejected" : "Flag cleared" };
   },
 );
+
+// ── listing review (M5, PLAN.md §6.1 Stage 3, decision D-5) ──
+const decision = z.object({ listingId: z.string().min(1), reason: z.string().default("") });
+export const requestListingChanges = defineAction({ input: decision, access: ADMIN }, async (input, ctx) => {
+  await risk.requestChanges(actor(ctx), input);
+  revalidatePath("/admin/listings");
+  redirect(`/admin/listings/${input.listingId}`);
+});
+export const rejectListing = defineAction({ input: decision, access: ADMIN }, async (input, ctx) => {
+  await risk.reject(actor(ctx), input);
+  revalidatePath("/admin/listings");
+  redirect(`/admin/listings/${input.listingId}`);
+});
+export const keepListingLive = defineAction({ input: z.object({ listingId: z.string().min(1), note: z.string().optional() }), access: ADMIN }, async (input, ctx) => {
+  await risk.clearReview(actor(ctx), input.listingId, input.note);
+  revalidatePath("/admin/listings");
+  return { ok: true, message: "Kept live and removed from the queue" };
+});
+
+// ── settings versions (M5: risk rules are edited as a new settings version) ──
+export const createSettingsVersion = defineAction({ input: z.object({ json: z.string().default(""), note: z.string().optional() }), access: ADMIN }, async (input, ctx) => {
+  let data: unknown;
+  try {
+    data = JSON.parse(input.json);
+  } catch {
+    throw new UserError("The settings aren't valid JSON. Check brackets, quotes and commas.");
+  }
+  const created = await settings.create({ data, note: input.note, actor: { type: "ADMIN", id: ctx.user.id }, requestId: ctx.requestId });
+  revalidatePath("/admin/settings");
+  redirect(`/admin/settings/versions/${created.version}`);
+});
+export const activateSettingsVersion = defineAction({ input: z.object({ version: z.coerce.number().int().positive() }), access: ADMIN }, async (input, ctx) => {
+  await settings.activate({ version: input.version, actor: { type: "ADMIN", id: ctx.user.id }, requestId: ctx.requestId });
+  revalidatePath("/admin/settings");
+  return { ok: true, message: `Version ${input.version} is now active` };
+});

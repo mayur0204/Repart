@@ -43,7 +43,20 @@ const CONTACT_PATTERNS: Array<{ kind: string; pattern: RegExp }> = [
   { kind: "email address", pattern: /[\w.+-]+@[\w-]+\.[\w.]{2,}/i },
   { kind: "UPI id", pattern: /\b[\w.-]{2,}@(?:ok)?[a-z]{2,}\b/i },
   { kind: "messaging app", pattern: /\b(?:whats\s?app|telegram|call me|dm me)\b/i },
+  { kind: "web link", pattern: /\b(?:https?:\/\/|www\.)\S+/i },
 ];
+
+const MASK_PATTERNS = [
+  /(?:\+?91[\s-]*)?[6-9](?:[\s-]*\d){9}\b/g,
+  /[\w.+-]+@[\w-]+(?:\.[\w-]+)*/g, // emails and UPI handles (name@bank)
+  /\b(?:https?:\/\/|www\.)\S+/gi,
+];
+export const CONTACT_MASK = "[contact details hidden]";
+
+/** Replaces phone numbers, emails, UPI handles and URLs (brief §6 Stage 1: "mask them and flag"). */
+export function maskContactDetails(text: string): string {
+  return MASK_PATTERNS.reduce((t, p) => t.replace(p, CONTACT_MASK), text);
+}
 
 /** Kinds of contact detail found in text, e.g. ["phone number"]. */
 export function detectContactDetails(text: string): string[] {

@@ -50,6 +50,9 @@ export const settingsSchema = z.object({
     priceOutlierZ: z.number().positive(),
     materialPriceChangePercent: percent, // [assumption A-15]
     weights: z.record(z.string(), z.number().min(0).max(100)),
+    // Added in M5: vision results count only at or above this confidence (PLAN.md §6.1 "confidence ≥ threshold").
+    // The default keeps versions saved before M5 valid.
+    visionMinConfidence: z.number().min(0).max(1).default(0.8),
   }),
   grading: z.object({
     // [assumption A-17] score = 100 − Σ weights of "bad" answers
@@ -117,6 +120,7 @@ export const DEFAULT_SETTINGS: Settings = {
       DAMAGE_CONTRADICTION: 40,
       PART_NUMBER_OCR: 20,
     },
+    visionMinConfidence: 0.8,
   },
   grading: { likeNewMin: 90, goodMin: 70, fairMin: 40 },
   storage: { signedUrlTtlSeconds: 600 },
