@@ -1,0 +1,54 @@
+# Local services for development and automated tests (PLAN.md §10, §12).
+# The app database for development is the Supabase DEV project (from .env).
+# postgres-test is ONLY for automated tests and is disposable.
+name: repart
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: repart
+      POSTGRES_PASSWORD: repart_local_only
+      POSTGRES_DB: repart_test
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - ./docker/postgres-test/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repart -d repart_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Optional offline StorageProvider (brief §2). Start with: docker compose --profile minio up -d
+  minio:
+    image: minio/minio:latest
+    profiles: ["minio"]
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: repart-local
+      MINIO_ROOT_PASSWORD: repart-local-only
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio-data:/data
+
+volumes:
+  redis-data:
+  minio-data:

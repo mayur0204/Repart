@@ -1,0 +1,74 @@
+import { z } from "zod";
+
+/**
+ * Environment schema (PLAN.md §1.2 "Secrets", §13).
+ * Kept free of `server-only` so unit tests and scripts can import it;
+ * runtime code must read env through `@/server/env`.
+ */
+
+const url = z.url();
+const postgresUrl = z
+  .string()
+  .regex(/^postgres(ql)?:\/\//, "must be a postgres:// or postgresql:// connection string");
+const adapter = <T extends readonly [string, ...string[]]>(values: T, fallback: T[number]) =>
+  z.enum(values).default(fallback);
+
+export const serverEnvSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+
+  DATABASE_URL: postgresUrl,
+  DIRECT_URL: postgresUrl.optional(), // CLI only; not needed by the running app
+
+  SUPABASE_URL: url,
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
+
+  STORAGE_PROVIDER: adapter(["supabase", "minio", "memory"] as const, "supabase"),
+  STORAGE_BUCKET_LISTING_PHOTOS: z.string().default("listing-photos"),
+  STORAGE_BUCKET_INSPECTION_PHOTOS: z.string().default("inspection-photos"),
+  STORAGE_BUCKET_DISPUTE_EVIDENCE: z.string().default("dispute-evidence"),
+  STORAGE_BUCKET_CATALOGUE_IMPORTS: z.string().default("catalogue-imports"),
+  MINIO_ENDPOINT: url.optional(),
+  MINIO_ACCESS_KEY: z.string().optional(),
+  MINIO_SECRET_KEY: z.string().optional(),
+
+  REDIS_URL: z.string().regex(/^rediss?:\/\//, "must be a redis:// or rediss:// URL").default("redis://127.0.0.1:6379"),
+
+  APP_BASE_URL: url.default("http://localhost:3000"),
+  SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+
+  OTP_PROVIDER: adapter(["mock"] as const, "mock"),
+  PAYMENT_PROVIDER: adapter(["mock"] as const, "mock"), // "cashfree" added in M8
+  SHIPPING_PROVIDER: adapter(["mock"] as const, "mock"),
+  VISION_PROVIDER: adapter(["mock"] as const, "mock"),
+  NOTIFICATION_PROVIDER: adapter(["mock"] as const, "mock"),
+  MOCK_WEBHOOK_SECRET: z.string().min(16).optional(),
+  SHIPPING_WEBHOOK_SECRET: z.string().min(16).optional(),
+});
+
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
+
+/** Names that must never be exposed to the browser via NEXT_PUBLIC_. */
+export const SECRET_NAME_PATTERN = /(KEY|SECRET|TOKEN|PASSWORD|DATABASE|DIRECT_URL|SERVICE_ROLE)/i;
+
+/** Parse env and return a readable error that never echoes secret values. */
+export function parseServerEnv(source: Record<string, string | undefined>): ServerEnv {
+  const result = serverEnvSchema.safeParse(source);
+  if (!result.success) {
+    const problems = result.error.issues
+      .map((issue) => `  - ${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .join("\n");
+    throw new Error(`Invalid environment configuration:\n${problems}`);
+  }
+  if (result.data.NODE_ENV === "production" && result.data.PAYMENT_PROVIDER === "mock") {
+    throw new Error("Invalid environment configuration:\n  - PAYMENT_PROVIDER: mock is not allowed in production");
+  }
+  return result.data;
+}
+
+/** Returns NEXT_PUBLIC_* variable names that look like secrets. */
+export function findExposedSecrets(source: Record<string, string | undefined>): string[] {
+  return Object.keys(source).filter(
+    (name) => name.startsWith("NEXT_PUBLIC_") && SECRET_NAME_PATTERN.test(name.slice("NEXT_PUBLIC_".length)),
+  );
+}

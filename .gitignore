@@ -1,0 +1,39 @@
+# secrets — never commit
+.env
+.env.*
+!.env.example
+*.env
+* .env
+*.pem
+*.key
+*.p12
+
+# dependencies / build
+node_modules/
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# generated
+src/generated/
+
+# tests / artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+screenshots/
+
+# local docker volumes
+.docker-data/
+
+# misc
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/
+.idea/
