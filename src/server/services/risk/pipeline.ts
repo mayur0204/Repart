@@ -170,6 +170,7 @@ export async function runRiskCheck(db: Db, deps: RiskDeps, listingId: string): P
           ? { userId: listing.sellerId, channel: "IN_APP", type: "listing.live", title: "Part listed", body: `${listing.title ?? "Your listing"} is live.`, link: `/sell/${listingId}/status` }
           : { userId: listing.sellerId, channel: "IN_APP", type: "listing.changes_requested", title: "Changes needed", body: `${hardMessages.length} thing(s) to fix before ${listing.title ?? "your listing"} can go live.`, link: `/sell/${listingId}/status` },
     });
+    if (routing.decision === "LIVE") await enqueueOutbox(tx, { queue: "searches", name: "alert", payload: { listingId } });
     logger.info({ listingId, decision: routing.decision, score: routing.score, ruleSetVersion: state.settingsVersion }, "risk check routed");
     return routing.decision;
   });

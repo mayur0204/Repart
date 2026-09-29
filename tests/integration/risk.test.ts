@@ -115,6 +115,8 @@ describe("risk pipeline: persistence, versions and idempotency", () => {
       expect.arrayContaining(["listing.submitted", "listing.screening_started", "listing.live"]),
     );
     expect(await db.outboxJob.count({ where: { queue: "notifications", payload: { path: ["type"], equals: "listing.live" } } })).toBeGreaterThan(0);
+    // M6: going LIVE queues the saved-search alert job (PLAN.md §5.1 L5).
+    expect(await db.outboxJob.count({ where: { queue: "searches", name: "alert", payload: { equals: { listingId: id } } } })).toBe(1);
   });
 
   it("is idempotent: running again (or for a non-submitted listing) does nothing", async () => {

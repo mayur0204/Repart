@@ -12,6 +12,8 @@ export const metadata: Metadata = { title: "Account | RePart" };
 const LINKS = [
   { href: "/garage", label: "Your garage", body: "Bikes you ride and parts that fit them." },
   { href: "/account/addresses", label: "Addresses", body: "Where parts are delivered and picked up." },
+  { href: "/account/saved", label: "Saved parts", body: "Listings you saved to come back to." },
+  { href: "/garage/searches", label: "Saved searches", body: "Searches that alert you to new matches." },
   { href: "/account/privacy", label: "Privacy", body: "Consents and requests for your data." },
 ];
 

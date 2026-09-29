@@ -7,10 +7,11 @@ import { ButtonLink } from "@/components/ui/button";
 import { Badge, PartNumberText } from "@/components/ui/display";
 import { Icon } from "@/components/ui/icon";
 import { EmptyState } from "@/components/ui/states";
+import { ListingTile } from "@/components/listing/listing-tile";
 import { withNext } from "@/lib/return-to";
 import { partNumberPath } from "@/lib/slug";
-import { getCurrentUser } from "@/server/auth/current";
-import { interchange } from "@/server/services";
+import { buyerContext } from "@/server/buyer-context";
+import { interchange, publicSearch } from "@/server/services";
 import { matchLabel } from "@/server/services/interchange/graph";
 import { suggestEquivalent } from "../../actions";
 
@@ -45,8 +46,10 @@ export default async function PartNumberPage({ params }: Params) {
   const { brand, number } = await params;
   const data = await interchange.partNumberPage(brand, decodeURIComponent(number));
   if (!data) notFound();
-  const user = await getCurrentUser();
+  const ctx = await buyerContext({});
+  const user = ctx.user;
   const { part } = data;
+  const listings = await publicSearch.search({ pn: part.display, sort: "best" }, ctx.vehicle);
   const here = partNumberPath(part);
 
   return (
@@ -105,7 +108,11 @@ export default async function PartNumberPage({ params }: Params) {
           )}
 
           <h2 className="text-xl">Listings</h2>
-          <EmptyState title="Listings for this part appear here soon" body="Search and live listings are being built. For now, check back later." />
+          {listings.tiles.length ? (
+            <ul className="grid gap-3 lg:grid-cols-2">{listings.tiles.map((t) => <li key={t.id}><ListingTile tile={t} /></li>)}</ul>
+          ) : (
+            <EmptyState title="No listings for this part right now" body="Save a search for this number to hear when one is listed." action={<Link href={`/search?pn=${encodeURIComponent(part.display)}`} className="text-action underline">Search for it</Link>} />
+          )}
         </section>
 
         <section className="flex flex-col gap-3 lg:col-span-5" aria-labelledby="veh-heading">

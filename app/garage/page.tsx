@@ -42,7 +42,7 @@ export default async function GaragePage() {
                 {v.variant.name}, <span className="num">{v.year}</span>
                 {v.nickname ? <>. {v.nickname}</> : null}
               </p>
-              <p className="text-sm text-steel">Parts that fit this bike appear here once search is live.</p>
+              <Link href={`/search?vehicle=${v.variantId}&year=${v.year}`} className="text-sm text-action underline-offset-4 hover:underline">See parts that fit this bike</Link>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/garage/${v.id}`} className="inline-flex min-h-11 items-center px-1 text-action underline-offset-4 hover:underline">
                   Edit

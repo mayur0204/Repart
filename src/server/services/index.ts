@@ -10,6 +10,8 @@ import * as interchangeService from "./interchange/interchange";
 import * as listingService from "./listing/listing";
 import * as photoService from "./listing/photos";
 import * as riskPipeline from "./risk/pipeline";
+import * as publicService from "./search/public";
+import * as searchService from "./search/search";
 import * as riskReview from "./risk/review";
 import * as settingsService from "./settings/settings";
 import * as signInService from "./auth/sign-in";
@@ -158,3 +160,23 @@ export const settings = bind({
   create: settingsService.createSettingsVersion,
   activate: settingsService.activateSettingsVersion,
 });
+
+const publicDeps = () => ({ storage: adapters().storage, bucket: env().STORAGE_BUCKET_LISTING_PHOTOS });
+
+/** Public marketplace reads (M6). Only public fields leave these functions. */
+export const publicSearch = {
+  search: (query: searchService.SearchQuery, vehicle: import("./search/fit").Vehicle | null) => searchService.searchListings(db, query, { vehicle, deps: publicDeps() }),
+  resolveVehicle: (variantId: string, year?: number | null) => searchService.resolveVehicle(db, variantId, year),
+  listing: (id: string, ctx: { vehicle: import("./search/fit").Vehicle | null; pincode: string | null }) =>
+    publicService.getPublicListing(db, { ...publicDeps(), shipping: adapters().shipping }, id, ctx),
+  seller: (sellerId: string) => publicService.getSellerProfile(db, publicDeps(), sellerId),
+  toggleSaved: (userId: string, listingId: string) => publicService.toggleSavedListing(db, userId, listingId),
+  isSaved: (userId: string, listingId: string) => publicService.isSaved(db, userId, listingId),
+  saved: (userId: string, vehicle: import("./search/fit").Vehicle | null) => publicService.listSavedListings(db, publicDeps(), userId, vehicle),
+  report: (userId: string, input: unknown) => publicService.reportListing(db, userId, input),
+  saveSearch: (userId: string, input: { query: searchService.SearchQuery; label: string }) => publicService.saveSearch(db, userId, input),
+  savedSearches: (userId: string) => publicService.listSavedSearches(db, userId),
+  setAlerts: (userId: string, id: string, enabled: boolean) => publicService.setSavedSearchAlerts(db, userId, id, enabled),
+  deleteSearch: (userId: string, id: string) => publicService.deleteSavedSearch(db, userId, id),
+  alertSavedSearches: (listingId: string) => publicService.alertSavedSearches(db, listingId),
+};

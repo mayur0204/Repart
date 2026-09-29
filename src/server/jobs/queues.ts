@@ -5,7 +5,7 @@ import { z } from "zod";
  * Every job goes through the outbox, and every payload is validated on enqueue and again in the worker.
  * Later milestones add their jobs here (photo processing, risk check, timers, notifications, ...).
  */
-export const QUEUES = ["system", "notifications", "photos", "risk"] as const;
+export const QUEUES = ["system", "notifications", "photos", "risk", "searches"] as const;
 export type QueueName = (typeof QUEUES)[number];
 
 export const JOBS = {
@@ -30,6 +30,10 @@ export const JOBS = {
   risk: {
     // Enqueued on listing submit (PLAN.md §5.1 L1). The risk pipeline itself is M5.
     check: z.object({ listingId: z.string().min(1) }),
+  },
+  searches: {
+    // M6: a listing went LIVE; alert matching saved searches (PLAN.md §5.1 L5).
+    alert: z.object({ listingId: z.string().min(1) }),
   },
 } as const satisfies Record<QueueName, Record<string, z.ZodType>>;
 

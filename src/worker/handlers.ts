@@ -1,7 +1,7 @@
 import "server-only";
 import { jobSchema, type QueueName } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
-import { photos, risk } from "@/server/services";
+import { photos, publicSearch, risk } from "@/server/services";
 
 export type Handler = (payload: unknown, meta: { jobId: string | undefined }) => Promise<void>;
 
@@ -25,6 +25,12 @@ export const HANDLERS: Record<QueueName, Record<string, Handler>> = {
     check: async (payload, meta) => {
       const outcome = await risk.run((payload as { listingId: string }).listingId);
       logger.info({ jobId: meta.jobId, outcome }, "risk.check handled");
+    },
+  },
+  searches: {
+    alert: async (payload, meta) => {
+      const count = await publicSearch.alertSavedSearches((payload as { listingId: string }).listingId);
+      logger.info({ jobId: meta.jobId, count }, "searches.alert handled");
     },
   },
   notifications: {
