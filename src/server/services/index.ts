@@ -9,6 +9,8 @@ import * as importService from "./catalogue/import";
 import * as interchangeService from "./interchange/interchange";
 import * as listingService from "./listing/listing";
 import * as photoService from "./listing/photos";
+import * as messagingService from "./messaging/messaging";
+import * as notificationService from "./notification/notification";
 import * as riskPipeline from "./risk/pipeline";
 import * as publicService from "./search/public";
 import * as searchService from "./search/search";
@@ -179,4 +181,16 @@ export const publicSearch = {
   setAlerts: (userId: string, id: string, enabled: boolean) => publicService.setSavedSearchAlerts(db, userId, id, enabled),
   deleteSearch: (userId: string, id: string) => publicService.deleteSavedSearch(db, userId, id),
   alertSavedSearches: (listingId: string) => publicService.alertSavedSearches(db, listingId),
+};
+
+/** Messages (M7). Every call checks the caller takes part in the conversation. */
+export const messaging = {
+  start: (userId: string, listingId: string) => messagingService.startConversation(db, userId, listingId),
+  inbox: (userId: string) => messagingService.listInbox(db, publicDeps(), userId),
+  thread: (userId: string, conversationId: string) => messagingService.getThread(db, publicDeps(), userId, conversationId),
+  messages: (userId: string, conversationId: string, after?: string) => messagingService.getMessages(db, userId, conversationId, after),
+  send: (actor: { userId: string; requestId?: string }, input: unknown) => messagingService.sendMessage(db, actor, input),
+  markRead: (userId: string, conversationId: string) => messagingService.markRead(db, userId, conversationId),
+  report: (userId: string, input: unknown) => messagingService.reportMessage(db, userId, input),
+  deliverNotification: (payload: Parameters<typeof notificationService.deliverNotification>[2]) => notificationService.deliverNotification(db, adapters().notification, payload),
 };

@@ -39,28 +39,51 @@ export const GRADE_TEXT: Record<Grade, { label: string; meaning: string }> = {
 
 // ── contact details typed into listings (inline warning; full masking arrives with messages in M7) ──
 const CONTACT_PATTERNS: Array<{ kind: string; pattern: RegExp }> = [
-  { kind: "phone number", pattern: /(?:\+?91[\s-]*)?(?:[6-9](?:[\s-]*\d){9})\b/ },
+  { kind: "phone number", pattern: /(?:\+?91[\s.()-]*)?\(?[6-9](?:[\s.()-]*\d){9}\b/ },
   { kind: "email address", pattern: /[\w.+-]+@[\w-]+\.[\w.]{2,}/i },
   { kind: "UPI id", pattern: /\b[\w.-]{2,}@(?:ok)?[a-z]{2,}\b/i },
   { kind: "messaging app", pattern: /\b(?:whats\s?app|telegram|call me|dm me)\b/i },
   { kind: "web link", pattern: /\b(?:https?:\/\/|www\.)\S+/i },
 ];
 
+const DIGIT_WORD: Record<string, number> = { zero: 1, oh: 1, one: 1, two: 1, three: 1, four: 1, five: 1, six: 1, seven: 1, eight: 1, nine: 1, double: 1, triple: 2 };
+const WORD_PHONE = /\b(?:(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|double|triple|\d)\b[\s,.()/-]*){10,}/gi;
+
+/**
+ * Phone numbers written partly or fully as words ("nine eight seven 6 5 ..."), PLAN.md §9 M7.
+ * Masked only when the run has at least one number word and adds up to 10–13 digits
+ * ("double"/"triple" repeat the next digit), so lists of years or prices stay untouched.
+ */
+function maskWordPhones(text: string): string {
+  return text.replace(WORD_PHONE, (run) => {
+    const tokens = run.toLowerCase().match(/[a-z]+|\d/g) ?? [];
+    const digits = tokens.reduce((n, t) => n + (/\d/.test(t) ? 1 : (DIGIT_WORD[t] ?? 0)), 0);
+    const trailing = run.match(/[\s,.()/-]*$/)![0];
+    return tokens.some((t) => /[a-z]/.test(t)) && digits >= 10 && digits <= 13 ? CONTACT_MASK + trailing : run;
+  });
+}
+
+// Emails/UPI first, so a UPI handle made of a phone number (9876543210@ybl) is masked whole.
 const MASK_PATTERNS = [
-  /(?:\+?91[\s-]*)?[6-9](?:[\s-]*\d){9}\b/g,
   /[\w.+-]+@[\w-]+(?:\.[\w-]+)*/g, // emails and UPI handles (name@bank)
+  /(?:\+?91[\s.()-]*)?\(?[6-9](?:[\s.()-]*\d){9}\b/g,
   /\b(?:https?:\/\/|www\.)\S+/gi,
 ];
 export const CONTACT_MASK = "[contact details hidden]";
 
-/** Replaces phone numbers, emails, UPI handles and URLs (brief §6 Stage 1: "mask them and flag"). */
+/**
+ * Replaces phone numbers (digits, spaced/grouped digits, number words), emails, UPI handles and URLs
+ * (brief §6 Stage 1 and §9 Messages). A result different from the input means something was masked.
+ */
 export function maskContactDetails(text: string): string {
-  return MASK_PATTERNS.reduce((t, p) => t.replace(p, CONTACT_MASK), text);
+  return MASK_PATTERNS.reduce((t, p) => t.replace(p, CONTACT_MASK), maskWordPhones(text));
 }
 
 /** Kinds of contact detail found in text, e.g. ["phone number"]. */
 export function detectContactDetails(text: string): string[] {
-  return CONTACT_PATTERNS.filter((p) => p.pattern.test(text)).map((p) => p.kind);
+  const kinds = CONTACT_PATTERNS.filter((p) => p.pattern.test(text)).map((p) => p.kind);
+  if (!kinds.includes("phone number") && maskWordPhones(text) !== text) kinds.unshift("phone number");
+  return kinds;
 }
 
 // ── photos ──

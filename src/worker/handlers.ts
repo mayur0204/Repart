@@ -1,7 +1,7 @@
 import "server-only";
-import { jobSchema, type QueueName } from "@/server/jobs/queues";
+import { jobSchema, type JobPayload, type QueueName } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
-import { photos, publicSearch, risk } from "@/server/services";
+import { messaging, photos, publicSearch, risk } from "@/server/services";
 
 export type Handler = (payload: unknown, meta: { jobId: string | undefined }) => Promise<void>;
 
@@ -34,9 +34,9 @@ export const HANDLERS: Record<QueueName, Record<string, Handler>> = {
     },
   },
   notifications: {
-    send: async (_payload, meta) => {
-      // M2 wires this to the NotificationProvider and writes NotificationDelivery rows.
-      logger.info({ jobId: meta.jobId }, "notifications.send received (not wired until M2)");
+    send: async (payload, meta) => {
+      const id = await messaging.deliverNotification(payload as JobPayload<"notifications", "send">);
+      logger.info({ jobId: meta.jobId, notificationId: id }, "notifications.send handled");
     },
   },
 };

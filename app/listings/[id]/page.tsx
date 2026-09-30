@@ -15,6 +15,7 @@ import { buyerContext } from "@/server/buyer-context";
 import { catalogue, publicSearch } from "@/server/services";
 import { REPORT_REASONS } from "@/server/services/search/public";
 import { parseSearchQuery } from "@/server/services/search/search";
+import { startConversation } from "../../messages/actions";
 import { reportListing, toggleSaveListing } from "../actions";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -60,7 +61,13 @@ export default async function ListingPage({ params, searchParams }: Props) {
     <div className="flex flex-col gap-2">
       <Button fullWidth disabled>Buy now</Button>
       <p className="text-sm text-steel">Buying opens soon. Save the part to come back to it.</p>
-      <Button variant="secondary" fullWidth disabled>Message seller</Button>
+      {!ctx.user ? (
+        <ButtonLink href={withNext("/sign-in", here)} variant="secondary" fullWidth>Sign in to message the seller</ButtonLink>
+      ) : ctx.user.id !== l.seller?.id ? (
+        <ActionForm action={startConversation} submitLabel="Message seller" submitVariant="secondary" fullWidthSubmit>
+          <input type="hidden" name="listingId" value={id} />
+        </ActionForm>
+      ) : null}
       {ctx.user ? (
         <InlineAction action={toggleSaveListing} label={saved ? "Remove from saved" : "Save"} variant="secondary">
           <input type="hidden" name="listingId" value={id} />
