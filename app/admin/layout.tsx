@@ -7,6 +7,8 @@ const NAV = [
   { href: "/admin/catalogue/import", label: "CSV import" },
   { href: "/admin/interchange", label: "Interchange" },
   { href: "/admin/listings", label: "Listing review" },
+  { href: "/admin/orders", label: "Orders" },
+  { href: "/admin/reconciliation", label: "Reconciliation" },
   { href: "/admin/settings", label: "Settings" },
 ];
 

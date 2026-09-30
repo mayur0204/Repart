@@ -6,15 +6,19 @@ import { env } from "@/server/env";
 import { bullmqDispatch, createQueues, createRedis } from "@/server/jobs/bullmq";
 import { QUEUES } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
+import { orders } from "@/server/services";
 import { relayOutbox, SWEEP_AFTER_MS } from "@/server/services/outbox/outbox";
 import { runJob } from "./handlers";
 
 /**
  * Worker process (PLAN.md §1.1): BullMQ consumers + the outbox relay and sweeper.
- * Run with `npm run worker`. Timer sweepers and repeatable jobs are added from M8.
+ * Run with `npm run worker`. M8 adds the order sweep (missed timers, settlement sync, deadline breach)
+ * every minute and the payment reconciliation once a day.
  */
 const RELAY_INTERVAL_MS = 1_000;
 const SWEEP_INTERVAL_MS = 60_000;
+const ORDER_SWEEP_INTERVAL_MS = 60_000;
+const RECONCILE_INTERVAL_MS = 24 * 60 * 60_000;
 
 async function main() {
   const connection = createRedis(env().REDIS_URL);
@@ -45,12 +49,24 @@ async function main() {
   };
   const relayTimer = setInterval(() => void relay(), RELAY_INTERVAL_MS);
   const sweepTimer = setInterval(() => void relay(SWEEP_AFTER_MS), SWEEP_INTERVAL_MS);
+  const safely = (name: string, fn: () => Promise<unknown>) => async () => {
+    try {
+      logger.info({ result: await fn() }, `${name} done`);
+    } catch (err) {
+      logger.error({ err: (err as Error).message }, `${name} failed`);
+    }
+  };
+  const orderTimer = setInterval(safely("order sweep", orders.sweep), ORDER_SWEEP_INTERVAL_MS);
+  // The mock provider keeps its state in the web process, so reconciling against it here would only report noise.
+  const reconcileTimer = env().PAYMENT_PROVIDER === "mock" ? null : setInterval(safely("reconciliation", orders.reconcile), RECONCILE_INTERVAL_MS);
   logger.info({ queues: QUEUES }, "worker started");
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "worker stopping");
     clearInterval(relayTimer);
     clearInterval(sweepTimer);
+    clearInterval(orderTimer);
+    if (reconcileTimer) clearInterval(reconcileTimer);
     await Promise.all(workers.map((w) => w.close()));
     await Promise.all(Object.values(queues).map((q) => q.close()));
     await connection.quit();

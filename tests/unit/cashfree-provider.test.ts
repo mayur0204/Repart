@@ -99,10 +99,9 @@ describe("Cashfree Create Order responses", () => {
     await expect(provider.createOrder(input)).rejects.toThrow(/expected fields/);
   });
 
-  it("later-step operations fail loudly instead of silently doing nothing", async () => {
+  it("rejects unsigned webhooks instead of throwing", () => {
     const { provider } = setup(() => ok(cfOrder));
-    await expect(provider.refund({ orderId: "o", amount: 100, splitReversal: 0, idempotencyKey: "k" })).rejects.toThrow(/not implemented yet/);
-    expect(() => provider.verifyWebhook("{}", new Headers())).toThrow(/not implemented yet/);
+    expect(provider.verifyWebhook("{}", new Headers())).toBe(false);
   });
 });
 

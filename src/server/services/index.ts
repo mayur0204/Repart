@@ -11,6 +11,13 @@ import * as listingService from "./listing/listing";
 import * as photoService from "./listing/photos";
 import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
+import * as orderCheckout from "./order/checkout";
+import * as orderLifecycle from "./order/lifecycle";
+import * as orderRead from "./order/read";
+import * as paymentEvents from "./payment/payment-events";
+import * as reconciliationService from "./payment/reconciliation";
+import * as refundService from "./payment/refunds";
+import * as settlementService from "./payment/settlement";
 import * as vendorOnboarding from "./payment/vendor-onboarding";
 import * as riskPipeline from "./risk/pipeline";
 import * as publicService from "./search/public";
@@ -201,4 +208,35 @@ export const payouts = {
   summary: (userId: string) => vendorOnboarding.getPayoutSummary(db, userId),
   submit: (actor: { userId: string; requestId?: string }, input: unknown) => vendorOnboarding.submitPayoutOnboarding(db, adapters().payment, actor, input),
   sync: (userId: string) => vendorOnboarding.syncPayoutStatus(db, adapters().payment, userId),
+};
+
+/** Checkout, orders and payments (M8). Amounts are always computed server-side; the provider is chosen by PAYMENT_PROVIDER. */
+export const orders = {
+  price: (buyerId: string, input: { listingId: string; addressId?: string; withCheck: boolean }) => orderCheckout.priceListing(db, adapters(), buyerId, input),
+  place: (actor: { userId: string; requestId?: string }, input: unknown) => orderCheckout.placeOrder(db, adapters(), actor, input),
+  pay: (actor: { userId: string; requestId?: string }, orderId: string) => orderCheckout.payOrder(db, adapters(), actor, orderId, env().APP_BASE_URL),
+  confirm: (orderId: string) => paymentEvents.confirmFromProvider(db, adapters().payment, orderId),
+  forUser: (userId: string, orderId: string) => orderRead.orderForUser(db, userId, orderId),
+  list: (userId: string) => orderRead.ordersForUser(db, userId),
+  adminList: () => orderRead.adminOrders(db),
+  adminGet: (orderId: string) => orderRead.adminOrder(db, orderId),
+  adminCancel: (admin: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderLifecycle.adminCancelOrder(db, admin, orderId, input),
+  adminRefund: (admin: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderLifecycle.adminRefundOnly(db, admin, orderId, input),
+  resolveDispute: (admin: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderLifecycle.resolveDispute(db, admin, orderId, input),
+  reconciliation: () => orderRead.reconciliationOverview(db),
+  resolveMismatch: (adminId: string, mismatchId: string) => orderRead.resolveMismatch(db, adminId, mismatchId),
+  /** Provider webhook. `expected` guards the route: a mock webhook is never accepted while Cashfree is live, and vice versa. */
+  webhook: (expected: "mock" | "cashfree", rawBody: string, headers: Headers) => {
+    const payment = adapters().payment;
+    if (payment.name !== expected) return Promise.resolve({ status: 404, outcome: "rejected" as const });
+    return paymentEvents.receivePaymentWebhook(db, payment, rawBody, headers);
+  },
+  mockPay: (buyerId: string, orderId: string, outcome: "SUCCESS" | "FAILED" | "USER_DROPPED") => paymentEvents.simulateMockPayment(db, adapters().payment, buyerId, orderId, outcome),
+  // Worker jobs
+  expirePayment: (orderId: string) => orderLifecycle.expirePayment(db, adapters().payment, orderId),
+  sellerTimeout: (orderId: string) => orderLifecycle.sellerTimeout(db, orderId),
+  releaseSettlement: (orderId: string) => settlementService.releaseSettlement(db, adapters().payment, orderId),
+  processRefund: (refundId: string) => refundService.processRefund(db, adapters().payment, refundId),
+  sweep: () => orderLifecycle.sweepOrders(db, adapters().payment),
+  reconcile: () => reconciliationService.runReconciliation(db, adapters().payment),
 };

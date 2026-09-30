@@ -1,7 +1,7 @@
 import "server-only";
 import { jobSchema, type JobPayload, type QueueName } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
-import { messaging, photos, publicSearch, risk } from "@/server/services";
+import { messaging, orders, photos, publicSearch, risk } from "@/server/services";
 
 export type Handler = (payload: unknown, meta: { jobId: string | undefined }) => Promise<void>;
 
@@ -31,6 +31,24 @@ export const HANDLERS: Record<QueueName, Record<string, Handler>> = {
     alert: async (payload, meta) => {
       const count = await publicSearch.alertSavedSearches((payload as { listingId: string }).listingId);
       logger.info({ jobId: meta.jobId, count }, "searches.alert handled");
+    },
+  },
+  orders: {
+    expirePayment: async (payload, meta) => {
+      const r = await orders.expirePayment((payload as { orderId: string }).orderId);
+      logger.info({ jobId: meta.jobId, result: r }, "orders.expirePayment handled");
+    },
+    sellerTimeout: async (payload, meta) => {
+      const r = await orders.sellerTimeout((payload as { orderId: string }).orderId);
+      logger.info({ jobId: meta.jobId, result: r }, "orders.sellerTimeout handled");
+    },
+    releaseSettlement: async (payload, meta) => {
+      const r = await orders.releaseSettlement((payload as { orderId: string }).orderId);
+      logger.info({ jobId: meta.jobId, result: r }, "orders.releaseSettlement handled");
+    },
+    processRefund: async (payload, meta) => {
+      const r = await orders.processRefund((payload as { refundId: string }).refundId);
+      logger.info({ jobId: meta.jobId, result: r }, "orders.processRefund handled");
     },
   },
   notifications: {

@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { env } from "../../env";
 import { logger } from "../../logger";
 
@@ -13,6 +13,11 @@ import { logger } from "../../logger";
  */
 export const CASHFREE_API_VERSION = "2026-01-01";
 export const CASHFREE_BASE_URL = { sandbox: "https://sandbox.cashfree.com/pg" } as const;
+/**
+ * Easy Split "Set Vendor Settlement Eligibility Date" is only documented on the older v2 API
+ * (docs: payments/split/settlements/delay/vendor-level, sandbox host test.cashfree.com). Sandbox only.
+ */
+export const CASHFREE_LEGACY_BASE_URL = { sandbox: "https://test.cashfree.com/api/v2" } as const;
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 export type CashfreeConfig = {
@@ -70,6 +75,25 @@ export type CashfreeVendorRequest = {
  */
 export type CashfreeVendor = { vendor_id: string; status: string; remarks?: string | null };
 
+/** GET /orders/{order_id}/payments item (fields RePart reads). */
+export type CashfreePayment = { cf_payment_id: string | number; payment_status: string; payment_amount: number; payment_currency?: string; payment_time?: string | null };
+
+/** POST /orders/{order_id}/refunds body (API 2026-01-01). refund_splits reverses the vendor's split. */
+export type CashfreeRefundRequest = { refund_amount: number; refund_id: string; refund_note: string; refund_splits?: Array<{ vendor_id: string; amount: number }> };
+/** RefundEntity fields RePart reads. */
+export type CashfreeRefund = { cf_refund_id: string | number; refund_id: string; order_id: string; refund_amount: number; refund_status: string };
+
+/** POST /split/order/vendor/recon row (fields RePart reads). */
+export type CashfreeSplitReconRow = {
+  merchant_order_id?: string;
+  entity_type?: string;
+  merchant_vendor_id?: string;
+  vendor_commission?: string;
+  settled?: string;
+  vendor_settlement_id?: string | null;
+  vendor_settlement_eligibility_time?: string | null;
+};
+
 export class CashfreeError extends Error {
   constructor(
     message: string,
@@ -104,12 +128,12 @@ export function createCashfreeClient(cfg: CashfreeConfig) {
   const scrub = (s: string) => s.split(cfg.secretKey).join("[redacted]").split(cfg.appId).join("[redacted]");
 
   /** `redact`: request values (bank, UPI, PAN, ...) that must never appear in an error message either. */
-  async function request<T>(method: "GET" | "POST" | "PATCH", path: string, opts: { body?: unknown; idempotencyKey?: string; redact?: string[] } = {}): Promise<T> {
+  async function request<T>(method: "GET" | "POST" | "PATCH" | "PUT", path: string, opts: { body?: unknown; idempotencyKey?: string; redact?: string[]; legacy?: boolean } = {}): Promise<T> {
     const requestId = randomUUID();
     const log = { cashfreeRequestId: requestId, method, path };
     let res: Response;
     try {
-      res = await doFetch(`${base}${path}`, {
+      res = await doFetch(`${opts.legacy ? CASHFREE_LEGACY_BASE_URL[cfg.env] : base}${path}`, {
         method,
         headers: cashfreeHeaders(cfg, { requestId, idempotencyKey: opts.idempotencyKey }),
         body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
@@ -150,6 +174,32 @@ export function createCashfreeClient(cfg: CashfreeConfig) {
       }),
     /** GET /easy-split/vendors/{vendor_id}. An unknown vendor is HTTP 400 "vendor does not exist". */
     getVendor: (vendorId: string) => request<CashfreeVendor>("GET", `/easy-split/vendors/${encodeURIComponent(vendorId)}`),
+    /** GET /orders/{order_id}/payments */
+    getPayments: (orderId: string) => request<CashfreePayment[]>("GET", `/orders/${encodeURIComponent(orderId)}/payments`),
+    /** POST /orders/{order_id}/refunds */
+    createRefund: (orderId: string, body: CashfreeRefundRequest, idempotencyKey: string) =>
+      request<CashfreeRefund>("POST", `/orders/${encodeURIComponent(orderId)}/refunds`, { body, idempotencyKey }),
+    /** GET /orders/{order_id}/refunds/{refund_id} */
+    getRefund: (orderId: string, refundId: string) => request<CashfreeRefund>("GET", `/orders/${encodeURIComponent(orderId)}/refunds/${encodeURIComponent(refundId)}`),
+    /** POST /split/order/vendor/recon: split and settlement details for the given orders. */
+    splitRecon: (orderIds: string[]) =>
+      request<{ data?: CashfreeSplitReconRow[] }>("POST", "/split/order/vendor/recon", { body: { filters: { order_ids: orderIds }, pagination: { limit: 10 } } }),
+    /** PUT (v2) /easy-split/orders/{order_id}/settlement-eligibility/vendors/{vendor_id} */
+    setSettlementEligibility: (orderId: string, vendorId: string, settlementEligibilityDateUpdate: string) =>
+      request<{ status?: string; message?: string }>("PUT", `/easy-split/orders/${encodeURIComponent(orderId)}/settlement-eligibility/vendors/${encodeURIComponent(vendorId)}`, {
+        body: { settlementEligibilityDateUpdate },
+        legacy: true,
+      }),
+    /**
+     * Payment Gateway webhook signature (docs: payments/online/webhooks/signature-verification):
+     * Base64(HMAC-SHA256(x-webhook-timestamp + rawBody, secret)), compared in constant time.
+     */
+    verifyWebhookSignature(rawBody: string, timestamp: string | null, signature: string | null): boolean {
+      if (!timestamp || !signature) return false;
+      const expected = Buffer.from(createHmac("sha256", cfg.secretKey).update(timestamp + rawBody).digest("base64"));
+      const given = Buffer.from(signature);
+      return given.length === expected.length && timingSafeEqual(given, expected);
+    },
   };
 }
 export type CashfreeClient = ReturnType<typeof createCashfreeClient>;

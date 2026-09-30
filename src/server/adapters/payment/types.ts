@@ -44,16 +44,44 @@ export type ProviderOrder = {
   paymentSessionId: string | null;
   amount: Paise;
 };
-export type RefundInput = { orderId: string; amount: Paise; splitReversal: Paise; idempotencyKey: string };
-export type RefundResult = { providerRefundId: string; status: "PENDING" | "SUCCESS" | "FAILED" };
-export type Settlement = { providerSettlementId: string; orderId: string; vendorId: string; amount: Paise; settledAt: Date };
+/** All RePart ids; the adapter maps them to provider ids. `vendorPortion` > 0 reverses that much from the seller's split. */
+export type RefundInput = { orderId: string; refundId: string; amount: Paise; vendorId: string | null; vendorPortion: Paise; note: string; idempotencyKey: string };
+export type RefundState = "PENDING" | "SUCCESS" | "FAILED";
+export type RefundResult = { providerRefundId: string; status: RefundState };
 
+/** One payment attempt on a provider order (Cashfree: Get Payments for an Order). */
+export type ProviderPayment = {
+  providerPaymentId: string;
+  status: "SUCCESS" | "FAILED" | "PENDING" | "USER_DROPPED" | "CANCELLED" | "VOID" | "NOT_ATTEMPTED";
+  amount: Paise;
+  at: Date | null;
+};
+
+/** The seller's split on one order and whether the provider has settled it (Cashfree: split/order/vendor/recon). */
+export type OrderSettlement = { vendorId: string; amount: Paise; settled: boolean; providerSettlementId: string | null; eligibleAt: Date | null };
+
+/**
+ * A verified provider webhook, normalised. Amounts are paise. `providerEventId` is the delivery's dedupe key.
+ * UNKNOWN events are stored and acknowledged but never acted on.
+ */
 export type PaymentWebhookEvent = {
   providerEventId: string;
-  type: "PAYMENT_SUCCESS" | "PAYMENT_FAILED" | "REFUND_STATUS" | "SETTLEMENT" | "VENDOR_STATUS";
-  orderId?: string;
-  data: Record<string, unknown>;
+  type: "PAYMENT_SUCCESS" | "PAYMENT_FAILED" | "PAYMENT_USER_DROPPED" | "REFUND_STATUS" | "VENDOR_SETTLEMENT" | "UNKNOWN";
+  providerType: string;
+  orderId?: string; // RePart order id
+  providerPaymentId?: string;
+  amount?: Paise;
+  currency?: string;
+  refundId?: string; // RePart refund id
+  providerRefundId?: string;
+  refundStatus?: RefundState;
+  vendorId?: string;
+  settlementStatus?: string;
+  at?: Date;
 };
+
+/** Webhooks older (or newer) than this are rejected as replays (Cashfree recommends 5 minutes). */
+export const WEBHOOK_MAX_AGE_MS = 5 * 60 * 1000;
 
 /** Split-payment provider (REPART_BRIEF.md §3, PLAN.md §7). Mock first; Cashfree Easy Split at M8. */
 export interface PaymentProvider {
@@ -61,11 +89,16 @@ export interface PaymentProvider {
   createVendor(input: CreateVendorInput): Promise<VendorState>;
   /** null when the provider has no such vendor. */
   getVendorStatus(vendorId: string): Promise<VendorState | null>;
+  /** Creates the provider order with the seller's split attached (`vendorShare` to `vendorId`). */
   createOrder(input: SplitOrderInput): Promise<ProviderOrder>;
   getOrder(orderId: string): Promise<ProviderOrder | null>;
-  markSettlementEligible(orderId: string): Promise<void>;
+  getPayments(orderId: string): Promise<ProviderPayment[]>;
+  /** Releases the held seller split so the provider settles it on the vendor's schedule. Idempotent. */
+  markSettlementEligible(input: { orderId: string; vendorId: string; at: Date }): Promise<void>;
+  getOrderSettlement(orderId: string): Promise<OrderSettlement | null>;
   refund(input: RefundInput): Promise<RefundResult>;
-  getSettlements(range: { from: Date; to: Date }): Promise<Settlement[]>;
-  verifyWebhook(rawBody: string, headers: Headers): boolean;
-  parseWebhook(rawBody: string): PaymentWebhookEvent;
+  getRefund(orderId: string, refundId: string): Promise<RefundResult | null>;
+  /** Signature + timestamp (replay) check on the raw body. Never throws for bad input. */
+  verifyWebhook(rawBody: string, headers: Headers, now?: Date): boolean;
+  parseWebhook(rawBody: string, headers: Headers): PaymentWebhookEvent;
 }

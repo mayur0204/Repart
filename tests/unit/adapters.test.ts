@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createMockNotificationProvider } from "@/server/adapters/notification/mock";
 import { createMockOtpProvider, MOCK_OTP_CODE } from "@/server/adapters/otp/mock";
-import { createMockPaymentProvider, MOCK_SIGNATURE_HEADER } from "@/server/adapters/payment/mock";
+import { createMockPaymentProvider, MOCK_SIGNATURE_HEADER, MOCK_TIMESTAMP_HEADER, signMockWebhook } from "@/server/adapters/payment/mock";
 import { createMockShippingProvider, distanceBand } from "@/server/adapters/shipping/mock";
 import { signBody } from "@/server/adapters/signing";
 import { createMemoryStorageProvider } from "@/server/adapters/storage/memory";
@@ -24,12 +24,15 @@ describe("mock PaymentProvider", () => {
   const secret = "test-secret-0123456789";
   const payment = createMockPaymentProvider({ webhookSecret: secret, baseUrl: "http://localhost:3000" });
 
-  it("verifies only correctly signed webhooks", () => {
-    const body = JSON.stringify({ providerEventId: "e1", type: "PAYMENT_SUCCESS", data: {} });
-    expect(payment.verifyWebhook(body, new Headers({ [MOCK_SIGNATURE_HEADER]: signBody(secret, body) }))).toBe(true);
-    expect(payment.verifyWebhook(body, new Headers({ [MOCK_SIGNATURE_HEADER]: signBody("wrong-secret-000000", body) }))).toBe(false);
+  it("verifies only correctly signed, fresh webhooks (signature covers timestamp + body)", () => {
+    const body = JSON.stringify({ providerEventId: "e1", type: "PAYMENT_SUCCESS", providerType: "MOCK" });
+    const now = Date.now();
+    expect(payment.verifyWebhook(body, signMockWebhook(secret, body, now))).toBe(true);
+    expect(payment.verifyWebhook(body, signMockWebhook("wrong-secret-000000", body, now))).toBe(false);
+    expect(payment.verifyWebhook(body, new Headers({ [MOCK_TIMESTAMP_HEADER]: String(now), [MOCK_SIGNATURE_HEADER]: signBody(secret, body) }))).toBe(false);
+    expect(payment.verifyWebhook(body, signMockWebhook(secret, body, now - 10 * 60_000))).toBe(false); // replay
     expect(payment.verifyWebhook(body, new Headers())).toBe(false);
-    expect(payment.parseWebhook(body).providerEventId).toBe("e1");
+    expect(payment.parseWebhook(body, new Headers()).providerEventId).toBe("e1");
   });
 
   it("is idempotent on order creation and refunds", async () => {
@@ -37,8 +40,9 @@ describe("mock PaymentProvider", () => {
     const a = await payment.createOrder(input);
     const b = await payment.createOrder(input);
     expect(b.providerOrderId).toBe(a.providerOrderId);
-    const r1 = await payment.refund({ orderId: "o1", amount: 100, splitReversal: 100, idempotencyKey: "r1" });
-    const r2 = await payment.refund({ orderId: "o1", amount: 100, splitReversal: 100, idempotencyKey: "r1" });
+    const refund = { orderId: "o1", refundId: "rf1", amount: 100, vendorId: "v1", vendorPortion: 100, note: "test", idempotencyKey: "r1" };
+    const r1 = await payment.refund(refund);
+    const r2 = await payment.refund(refund);
     expect(r2.providerRefundId).toBe(r1.providerRefundId);
   });
 });

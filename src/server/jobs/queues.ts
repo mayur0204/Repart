@@ -5,7 +5,7 @@ import { z } from "zod";
  * Every job goes through the outbox, and every payload is validated on enqueue and again in the worker.
  * Later milestones add their jobs here (photo processing, risk check, timers, notifications, ...).
  */
-export const QUEUES = ["system", "notifications", "photos", "risk", "searches"] as const;
+export const QUEUES = ["system", "notifications", "photos", "risk", "searches", "orders"] as const;
 export type QueueName = (typeof QUEUES)[number];
 
 export const JOBS = {
@@ -34,6 +34,13 @@ export const JOBS = {
   searches: {
     // M6: a listing went LIVE; alert matching saved searches (PLAN.md §5.1 L5).
     alert: z.object({ listingId: z.string().min(1) }),
+  },
+  orders: {
+    // M8 timers and money follow-ups (PLAN.md §5.2, §7.2). All handlers are idempotent.
+    expirePayment: z.object({ orderId: z.string().min(1) }), // O3 at paymentExpiresAt
+    sellerTimeout: z.object({ orderId: z.string().min(1) }), // O8 at sellerConfirmBy
+    releaseSettlement: z.object({ orderId: z.string().min(1) }), // §7.2 step 6 on COMPLETED / RESOLVED_RELEASE
+    processRefund: z.object({ refundId: z.string().min(1) }), // send / re-check a Refund with the provider
   },
 } as const satisfies Record<QueueName, Record<string, z.ZodType>>;
 

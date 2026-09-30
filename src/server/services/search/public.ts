@@ -22,8 +22,8 @@ type Db = PrismaClient;
 export const PUBLIC_STATUSES = ["LIVE", "RESERVED", "SOLD"] as const;
 
 /** Parcel sizes used for the delivery estimate, from the seller's packed weight and size bands [assumption]. */
-const WEIGHT_GRAMS = { UNDER_1KG: 900, KG_1_3: 3000, KG_3_7: 7000, KG_7_15: 15000, KG_15_30: 30000, OVER_30KG: 40000 } as const;
-const SIZE_CM = { SMALL: [30, 20, 15], MEDIUM: [45, 35, 25], LARGE: [70, 50, 40], OVERSIZE: [120, 70, 50] } as const;
+export const WEIGHT_GRAMS = { UNDER_1KG: 900, KG_1_3: 3000, KG_3_7: 7000, KG_7_15: 15000, KG_15_30: 30000, OVER_30KG: 40000 } as const;
+export const SIZE_CM = { SMALL: [30, 20, 15], MEDIUM: [45, 35, 25], LARGE: [70, 50, 40], OVERSIZE: [120, 70, 50] } as const;
 
 const firstName = (name: string | null) => name?.trim().split(/\s+/)[0] ?? "RePart seller";
 

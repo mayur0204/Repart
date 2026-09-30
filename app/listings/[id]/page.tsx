@@ -50,6 +50,8 @@ export default async function ListingPage({ params, searchParams }: Props) {
   if (!l) notFound();
   const [saved, vehicles] = await Promise.all([ctx.user ? publicSearch.isSaved(ctx.user.id, id) : false, l.fit.state === "NO_VEHICLE" ? catalogue.vehicles() : null]);
   const available = l.status === "LIVE";
+  const isSeller = ctx.user?.id === l.seller?.id;
+  const buyHref = ctx.user ? `/checkout/${id}` : withNext("/sign-in", `/checkout/${id}`);
   const here = `/listings/${id}`;
   const grade = l.conditionGrade ? GRADE_TEXT[l.conditionGrade as Grade] : null;
   const partnerCheck =
@@ -59,8 +61,12 @@ export default async function ListingPage({ params, searchParams }: Props) {
 
   const actions = (
     <div className="flex flex-col gap-2">
-      <Button fullWidth disabled>Buy now</Button>
-      <p className="text-sm text-steel">Buying opens soon. Save the part to come back to it.</p>
+      {available && !isSeller ? (
+        <ButtonLink href={buyHref} fullWidth>Buy now</ButtonLink>
+      ) : (
+        <Button fullWidth disabled>{isSeller ? "Your listing" : "Not available"}</Button>
+      )}
+      <p className="text-sm text-steel">Your payment is held until you confirm the part is OK.</p>
       {!ctx.user ? (
         <ButtonLink href={withNext("/sign-in", here)} variant="secondary" fullWidth>Sign in to message the seller</ButtonLink>
       ) : ctx.user.id !== l.seller?.id ? (
@@ -211,7 +217,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
       {available ? (
         <div className="fixed inset-x-0 bottom-14 z-20 flex items-center justify-between gap-4 border-t border-rule bg-surface p-3 lg:hidden">
           <Price paise={l.pricePaise} size="md" />
-          <Button disabled>Buy now</Button>
+          {isSeller ? <Button disabled>Your listing</Button> : <ButtonLink href={buyHref}>Buy now</ButtonLink>}
         </div>
       ) : null}
     </main>

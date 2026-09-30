@@ -8,7 +8,7 @@ import { NotFoundError, UserError } from "../../http/errors";
  * The amount always comes from the order row the server priced, never from the browser.
  * One Payment per order (unique orderId): a repeat call returns the stored session instead of
  * creating another provider order. Returns only what the browser checkout needs.
- * Order state transitions (O1 onwards) are a later M8 step.
+ * The seller's split (vendorShare → the seller's ACTIVE vendor) is attached to the provider order here.
  */
 type Db = Pick<PrismaClient, "order" | "payment">;
 
@@ -37,6 +37,8 @@ export async function startProviderPayment(
   if (order.state !== "CREATED") throw new UserError("This order can no longer be paid.");
   // Plan A-6: no payment until the seller's payout vendor is ACTIVE (the seller share can't be split otherwise).
   if (order.seller.payoutAccount?.status !== "ACTIVE") throw new UserError("This seller can't receive payments yet. Try again later.");
+  const vendorId = order.vendorSharePaise > 0 ? order.seller.payoutAccount.providerVendorId : null;
+  if (order.vendorSharePaise > 0 && !vendorId) throw new UserError("This seller can't receive payments yet. Try again later.");
 
   const stored = await db.payment.findUnique({ where: { orderId: order.id } });
   if (stored) return sessionOf(stored, provider.name);
@@ -44,7 +46,7 @@ export async function startProviderPayment(
   const created = await provider.createOrder({
     orderId: order.id,
     amount: order.totalPaise,
-    vendorId: order.seller.payoutAccount?.providerVendorId ?? "",
+    vendorId: vendorId ?? "",
     vendorShare: order.vendorSharePaise,
     customer: { id: order.buyer.id, phone: order.buyer.phone, name: order.buyer.name, email: order.buyer.email },
     returnUrl: input.returnUrl,
@@ -62,6 +64,7 @@ export async function startProviderPayment(
         providerOrderId: created.providerOrderId,
         providerSessionId: created.paymentSessionId,
         amountPaise: order.totalPaise,
+        vendorId, // the Easy Split vendor the seller's share was split to: used for release, refunds and reconciliation
         vendorSharePaise: order.vendorSharePaise,
         merchantSharePaise: order.merchantSharePaise,
       },
