@@ -327,19 +327,19 @@ model User {
   addresses           Address[]
   payoutAccount       PayoutAccount?
   garage              GarageVehicle[]
-  listings            Listing[]      @relation("SellerListings")
-  buyerOrders         Order[]        @relation("BuyerOrders")
-  sellerOrders        Order[]        @relation("SellerOrders")
+  listings            Listing[]       @relation("SellerListings")
+  buyerOrders         Order[]         @relation("BuyerOrders")
+  sellerOrders        Order[]         @relation("SellerOrders")
   mechanicStaff       MechanicStaff?
   savedListings       SavedListing[]
   savedSearches       SavedSearch[]
   notifications       Notification[]
-  reviewsWritten      Review[]       @relation("ReviewAuthor")
-  reviewsReceived     Review[]       @relation("ReviewSubject")
-  reportsFiled        Report[]       @relation("Reporter")
-  reportsAgainst      Report[]       @relation("ReportedUser")
-  buyerConversations  Conversation[] @relation("ConvBuyer")
-  sellerConversations Conversation[] @relation("ConvSeller")
+  reviewsWritten      Review[]        @relation("ReviewAuthor")
+  reviewsReceived     Review[]        @relation("ReviewSubject")
+  reportsFiled        Report[]        @relation("Reporter")
+  reportsAgainst      Report[]        @relation("ReportedUser")
+  buyerConversations  Conversation[]  @relation("ConvBuyer")
+  sellerConversations Conversation[]  @relation("ConvSeller")
   messages            Message[]
 }
 
@@ -412,22 +412,22 @@ model PincodeGeo {
 }
 
 model PayoutAccount {
-  id               String                 @id @default(cuid())
-  userId           String                 @unique
-  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider         String
-  providerVendorId String?                @unique
-  status           PayoutOnboardingStatus @default(NOT_STARTED)
-  statusReason     String?
-  statusCheckedAt  DateTime?
+  id                       String                 @id @default(cuid())
+  userId                   String                 @unique
+  user                     User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider                 String
+  providerVendorId         String?                @unique
+  status                   PayoutOnboardingStatus @default(NOT_STARTED)
+  statusReason             String?
+  statusCheckedAt          DateTime?
   // M8 Easy Split: raw provider status (e.g. IN_KYC_REVIEW), method chosen, settlement schedule sent,
   // and the UUID reused for every retry of the vendor-creation request.
   providerStatus           String?
   payoutMethod             PayoutMethod?
   settlementScheduleOption Int?
   vendorIdempotencyKey     String?
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
   // No bank, UPI or KYC details, ever: they go straight to the provider.
 }
 
@@ -748,6 +748,7 @@ model Inspection {
 
   @@index([partnerId, slotStart])
   @@index([listingId])
+  @@index([orderId]) // order pages, Partner Check panel, fulfilment (M13 index review)
 }
 
 model InspectionPhoto {
@@ -946,6 +947,8 @@ model Shipment {
   updatedAt       DateTime          @updatedAt
   trackingEvents  TrackingEvent[]
   dispute         Dispute?          @relation("ReturnShipment")
+
+  @@index([orderId]) // order pages, fulfilment, dispute returns (M13 index review)
 }
 
 model TrackingEvent {
@@ -1135,6 +1138,7 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([createdAt])
+  @@index([actorId, createdAt]) // user detail audit list, audit viewer actor filter (M13 index review)
 }
 
 model OutboxJob {

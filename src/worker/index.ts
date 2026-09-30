@@ -79,6 +79,11 @@ async function main() {
   };
   process.on("SIGINT", () => void shutdown("SIGINT"));
   process.on("SIGTERM", () => void shutdown("SIGTERM"));
+  // When started by a parent over IPC (the e2e harness): Windows has no SIGTERM for child processes.
+  process.on("message", (m) => {
+    if (m === "shutdown") void shutdown("ipc");
+  });
+  process.send?.("ready");
 }
 
 main().catch((err) => {

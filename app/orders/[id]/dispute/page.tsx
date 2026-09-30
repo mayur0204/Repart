@@ -76,7 +76,7 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
             {d.evidence.map((e) => (
               <li key={e.id} className="flex flex-col gap-1">
                 {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-                <img src={e.url} alt={`${e.party === "BUYER" ? "Buyer" : "Seller"} photo`} className="aspect-square w-full border border-rule object-cover" />
+                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party === "BUYER" ? "Buyer" : "Seller"} photo`} className="aspect-square w-full border border-rule object-cover" />
                 <span className="text-sm text-steel">{e.party === "BUYER" ? "Buyer" : "Seller"}</span>
               </li>
             ))}

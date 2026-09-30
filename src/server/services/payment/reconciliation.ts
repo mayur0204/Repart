@@ -57,8 +57,11 @@ export async function runReconciliation(db: Db, provider: PaymentProvider, opts:
     }
   }
 
+  // One short transaction per mismatch (row + audit together): a single transaction for a run with hundreds of
+  // mismatches outlives Prisma's interactive-transaction limit. If the run stops half way it stays RUNNING, and the
+  // mismatches already written are real findings either way.
+  for (const m of found) await db.$transaction((tx) => flagMismatch(tx, { ...m, runId: run.id }));
   await db.$transaction(async (tx) => {
-    for (const m of found) await flagMismatch(tx, { ...m, runId: run.id });
     await tx.reconciliationRun.update({ where: { id: run.id }, data: { status: "COMPLETED", summary: { checked: payments.length, mismatches: found.length, errors } } });
     await recordAudit(tx, { actor: { type: "SYSTEM", id: null }, action: "reconciliation.completed", entity: { type: "ReconciliationRun", id: run.id }, after: { checked: payments.length, mismatches: found.length, errors } });
   });

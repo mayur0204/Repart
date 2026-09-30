@@ -22,7 +22,8 @@ type Props = { params: Promise<{ id: string }>; searchParams: Promise<Record<str
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const l = await publicSearch.listing((await params).id, { vehicle: null, pincode: null });
-  return { title: l ? `${l.title} | RePart` : "Listing not found | RePart" };
+  if (!l) return { title: "Listing not found | RePart" };
+  return { title: `${l.title} | RePart`, description: `${l.title}, used, ${formatPrice(l.pricePaise)} on RePart. Check it fits your bike, then pay safely: the seller is paid only after you confirm it's OK.` };
 }
 
 function Compat({ title, rows, tone }: { title: string; rows: Array<{ label: string; note?: string | null }>; tone?: "caution" | "danger" }) {
@@ -96,7 +97,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
               <li key={p.url} className={i === 0 ? "col-span-2" : undefined}>
                 <figure className="flex flex-col gap-1">
                   {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-                  <img src={p.url} alt={`${l.title}: ${p.caption}`} className="aspect-square w-full border border-rule object-cover" />
+                  <img src={p.url} alt={`${l.title}: ${p.caption}`} loading={i === 0 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : undefined} decoding="async" className="aspect-square w-full border border-rule object-cover" />
                   <figcaption className="text-sm text-steel">{p.caption}</figcaption>
                 </figure>
               </li>
@@ -160,7 +161,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
           <section className="flex flex-col gap-1 border border-rule bg-surface p-3">
             <h2 className="text-lg">Seller</h2>
             <p className="text-sm">
-              <Link href={`/sellers/${l.seller.id}`} className="text-action underline-offset-4 hover:underline">{l.seller.displayName}</Link>
+              <Link href={`/sellers/${l.seller.id}`} className="text-action underline underline-offset-4">{l.seller.displayName}</Link>
               {l.seller.isSample ? " (SAMPLE)" : ""}. Member since <DateText date={l.seller.memberSince} />. {l.seller.completedSales} completed {l.seller.completedSales === 1 ? "sale" : "sales"}.{" "}
               {l.seller.rating ? `Rated ${l.seller.rating.average} out of 5 (${l.seller.rating.count}).` : "No ratings yet."}
             </p>

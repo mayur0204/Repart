@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { PrismaClient } from "../../src/generated/prisma/client";
 import { seed } from "../../prisma/seed/seed";
-import { FieldError, UserError } from "../../src/server/http/errors";
-import { useRateLimitStore } from "../../src/server/http/rate-limit";
+import { FieldError, RateLimitedError, UserError } from "../../src/server/http/errors";
+import { rateLimitsFromSettings, useRateLimitStore } from "../../src/server/http/rate-limit";
 import { getPartNumberPage, loadInterchange, reviewLink, reviewQueue, suggestEquivalent } from "../../src/server/services/interchange/interchange";
 import { testPrisma } from "../setup/test-db";
 
@@ -103,5 +103,15 @@ describe("suggestions and review", () => {
     await db.interchangeLink.update({ where: { id: "sample-link-mir-1-2" }, data: { inReviewQueue: true, flaggedCount: 1 } });
     await reviewLink(db, admin, { id: "sample-link-mir-1-2", decision: "CLEAR_FLAG" });
     expect((await db.interchangeLink.findUniqueOrThrow({ where: { id: "sample-link-mir-1-2" } })).inReviewQueue).toBe(false);
+  });
+});
+
+describe("rate limit (M13 review)", () => {
+  it("interchange suggestions are limited per member, counted before any lookup", async () => {
+    const { interchangeSuggestionsPerUser } = await rateLimitsFromSettings(db);
+    const base = { fromPartNumberId: "sample-pn-whl-0001", brand: "Sample Motors", type: "EXACT_EQUIVALENT", number: "NOT-IN-CATALOGUE" };
+    for (let i = 0; i < interchangeSuggestionsPerUser.points; i++) await expect(suggestEquivalent(db, buyer, base)).rejects.toBeInstanceOf(FieldError);
+    await expect(suggestEquivalent(db, buyer, base)).rejects.toBeInstanceOf(RateLimitedError);
+    await expect(suggestEquivalent(db, { userId: "sample-user-buyer-2" }, base)).rejects.toBeInstanceOf(FieldError); // per member
   });
 });

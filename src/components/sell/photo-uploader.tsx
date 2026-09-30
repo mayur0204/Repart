@@ -136,7 +136,7 @@ export function PhotoUploader({
       <div className="flex aspect-square w-full items-center justify-center border border-rule bg-page">
         {p.status === "ready" && p.url ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-          <img src={p.url} alt={`Photo ${index + 1}`} className="h-full w-full object-cover" />
+          <img loading="lazy" decoding="async" src={p.url} alt={`Photo ${index + 1}`} className="h-full w-full object-cover" />
         ) : p.status === "processing" ? (
           <span className="text-sm text-steel">Checking photo</span>
         ) : (

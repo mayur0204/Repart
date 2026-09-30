@@ -8,8 +8,8 @@ import { fulfilment } from "@/server/services";
 /** Seller order actions (PLAN.md §4.4, §5.2 O5–O7, O9, O12). Ownership is checked in the service. */
 const orderId = z.string().min(1).max(64);
 
-export const confirmOrder = defineAction({ input: z.object({ orderId, slot: z.string().max(40).optional() }), access: "member" }, async (input, ctx) => {
-  const r = await fulfilment.confirm({ userId: ctx.user.id, requestId: ctx.requestId }, input.orderId, { slot: input.slot });
+export const confirmOrder = defineAction({ input: z.object({ orderId, slot: z.string().max(40).optional(), inspectionSlot: z.string().max(40).optional() }), access: "member" }, async (input, ctx) => {
+  const r = await fulfilment.confirm({ userId: ctx.user.id, requestId: ctx.requestId }, input.orderId, { slot: input.slot, inspectionSlot: input.inspectionSlot });
   revalidatePath(`/seller/orders/${input.orderId}`);
   return { ok: true, message: r.state === "PICKUP_SCHEDULED" ? "Confirmed. Pickup booked." : r.state === "AWAITING_HANDOVER" ? "Confirmed. Agree the handover in Messages." : "Confirmed. RePart will arrange the Partner Check." };
 });

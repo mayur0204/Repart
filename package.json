@@ -18,6 +18,7 @@
     "test:integration": "vitest run --project integration",
     "test:all": "vitest run",
     "test:e2e": "playwright test",
+    "screenshots": "playwright test tests/e2e/design-rules.spec.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",

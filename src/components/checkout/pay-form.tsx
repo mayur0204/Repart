@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
+import { useOffline } from "@/components/layout/offline-banner";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import type { FormAction } from "@/components/forms/action-form";
@@ -35,6 +36,7 @@ function loadCashfree(): Promise<CashfreeFactory> {
 export function PayForm({ action, label, mode, children }: { action: Action; label: string; mode: "sandbox"; children?: ReactNode }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const offline = useOffline();
 
   function submit(formData: FormData) {
     setError(null);
@@ -61,7 +63,7 @@ export function PayForm({ action, label, mode, children }: { action: Action; lab
           {error}
         </p>
       ) : null}
-      <Button type="submit" fullWidth disabled={pending}>
+      <Button type="submit" fullWidth disabled={pending || offline}>
         {pending ? "Opening payment" : label}
       </Button>
     </form>

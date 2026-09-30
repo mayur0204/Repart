@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Page } from "@/components/layout/page";
-import { ButtonLink } from "@/components/ui/button";
+import { buttonClasses } from "@/components/ui/button";
 import { PermissionDenied } from "@/components/ui/states";
 import { adminPage } from "@/server/auth/current";
 import { EXPORT_COLUMNS } from "@/server/services/admin/admin";
@@ -13,8 +13,9 @@ export default async function ExportPage() {
   return (
     <Page title="Training-data export" intro="One row per listing (drafts left out), with its photos' storage keys and quality measures, the latest risk assessment, the latest inspection and the latest order outcome. Every download is recorded in the audit log.">
       <div className="flex flex-wrap gap-3">
-        <ButtonLink href="/api/admin/export/training.csv">Download CSV</ButtonLink>
-        <ButtonLink href="/api/admin/export/training.csv?includeSample=true" variant="secondary">Download including sample data</ButtonLink>
+        {/* Plain links, not next/link: a prefetch would run (and audit) an export just by viewing this page. */}
+        <a href="/api/admin/export/training.csv" download className={buttonClasses("primary")}>Download CSV</a>
+        <a href="/api/admin/export/training.csv?includeSample=true" download className={buttonClasses("secondary")}>Download including sample data</a>
       </div>
       <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
         <h2 className="text-xl">Columns</h2>

@@ -45,7 +45,7 @@ export default async function ReviewStep({ params }: { params: Promise<{ id: str
           {ready.length ? (
             ready.map((p, i) => (
               // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-              <img key={p.id} src={p.url!} alt={`${l.partName ?? "Part"}, photo ${i + 1}`} className={i === 0 ? "col-span-3 aspect-square w-full object-cover" : "aspect-square w-full object-cover"} />
+              <img loading="lazy" decoding="async" key={p.id} src={p.url!} alt={`${l.partName ?? "Part"}, photo ${i + 1}`} className={i === 0 ? "col-span-3 aspect-square w-full object-cover" : "aspect-square w-full object-cover"} />
             ))
           ) : (
             <p className="col-span-3 text-steel">No photos yet.</p>

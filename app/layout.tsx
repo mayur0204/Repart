@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Anek_Latin } from "next/font/google";
+import { connection } from "next/server";
 import { BottomBar } from "@/components/layout/bottom-bar";
+import { OfflineBanner } from "@/components/layout/offline-banner";
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker";
 import { TopBar } from "@/components/layout/top-bar";
 import { ToastProvider } from "@/components/ui/toast";
@@ -17,6 +19,8 @@ export const metadata: Metadata = {
   title: "RePart",
   description: "Used motorcycle and scooter parts, checked and delivered.",
   applicationName: "RePart",
+  // Without this, browsers request /favicon.ico, which doesn't exist.
+  icons: { icon: "/icon.svg", apple: "/icons/icon-192.png" },
 };
 
 export const viewport: Viewport = {
@@ -25,7 +29,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+/** Rendered per request so proxy.ts can give every page a fresh CSP nonce (Next.js CSP guide, "Forcing dynamic rendering"). */
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  await connection();
   return (
     <html lang="en-IN" className={anek.variable}>
       <body className="min-h-dvh pb-20 lg:pb-0">
@@ -34,6 +40,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </a>
         <ToastProvider>
           <TopBar />
+          <OfflineBanner />
           <div id="main">{children}</div>
           <BottomBar />
         </ToastProvider>

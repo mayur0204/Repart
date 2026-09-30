@@ -58,7 +58,7 @@ export function InspectionPhotos({ inspectionId, shots, photos, actions }: { ins
             </div>
             {p?.url ? (
               // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-              <img src={p.url} alt={s.label} className="aspect-square w-full border border-rule object-cover" />
+              <img loading="lazy" decoding="async" src={p.url} alt={s.label} className="aspect-square w-full border border-rule object-cover" />
             ) : null}
             <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
               <input type="file" accept={PHOTO_TYPES.join(",")} capture="environment" className="sr-only" disabled={busy !== null} onChange={(e) => void upload(e.target.files?.[0], s.shotType)} />

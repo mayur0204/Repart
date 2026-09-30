@@ -71,7 +71,7 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
             {d.evidence.map((e) => (
               <li key={e.id} className="flex flex-col gap-1">
                 {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-                <img src={e.url} alt={`${e.party.toLowerCase()} evidence`} className="aspect-square w-full border border-rule object-cover" />
+                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party.toLowerCase()} evidence`} className="aspect-square w-full border border-rule object-cover" />
                 <span className="text-sm text-steel">{e.party === "BUYER" ? "Buyer" : e.party === "SELLER" ? "Seller" : "Admin"}</span>
               </li>
             ))}

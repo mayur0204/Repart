@@ -24,7 +24,7 @@ export type TileData = {
 export function ListingTile({ tile }: { tile: TileData }) {
   const photo = tile.photoUrl ? (
     // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-    <img src={tile.photoUrl} alt={tile.title} className="aspect-square w-full object-cover" />
+    <img loading="lazy" decoding="async" src={tile.photoUrl} alt={tile.title} className="aspect-square w-full object-cover" />
   ) : (
     <div className="flex aspect-square w-full items-center justify-center bg-page text-sm text-steel">No photo yet</div>
   );

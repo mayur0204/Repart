@@ -4,8 +4,8 @@ import type { PrismaClient } from "../../src/generated/prisma/client";
 import { seed } from "../../prisma/seed/seed";
 import { MAX_LISTING_PHOTOS } from "../../src/lib/listing";
 import { createMemoryStorageProvider } from "../../src/server/adapters/storage/memory";
-import { FieldError, NotFoundError, UserError } from "../../src/server/http/errors";
-import { useRateLimitStore } from "../../src/server/http/rate-limit";
+import { FieldError, NotFoundError, RateLimitedError, UserError } from "../../src/server/http/errors";
+import { consumeRateLimit, rateLimitsFromSettings, useRateLimitStore } from "../../src/server/http/rate-limit";
 import {
   createDraft,
   getWizardState,
@@ -193,6 +193,16 @@ describe("photos", () => {
 });
 
 describe("submit and withdraw (M4 state transitions)", () => {
+  it("listing submission is rate limited per seller (M13 review): over the limit, a complete draft stays a draft", async () => {
+    const draft = await completeDraft();
+    const { listingSubmissionsPerUser } = await rateLimitsFromSettings(db);
+    for (let i = 0; i < listingSubmissionsPerUser.points; i++) await consumeRateLimit(db, "listingSubmissionsPerUser", seller.userId);
+    await expect(submitListing(db, seller, draft.id)).rejects.toBeInstanceOf(RateLimitedError);
+    expect((await db.listing.findUniqueOrThrow({ where: { id: draft.id } })).status).toBe("DRAFT");
+    useRateLimitStore("memory"); // other members and later tests start fresh
+    expect(await submitListing(db, seller, draft.id)).toBeNull();
+  });
+
   it("an incomplete draft reports what's missing and stays a draft", async () => {
     const draft = await createDraft(db, seller);
     const report = await submitListing(db, seller, draft.id);

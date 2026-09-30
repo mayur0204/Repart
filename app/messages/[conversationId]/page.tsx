@@ -30,7 +30,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
       <section aria-label="Listing" className="sticky top-14 z-10 grid grid-cols-[4rem_1fr] gap-3 border border-rule bg-surface p-3">
         {t.listing.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-          <img src={t.listing.photoUrl} alt="" className="aspect-square w-16 object-cover" />
+          <img loading="lazy" decoding="async" src={t.listing.photoUrl} alt="" className="aspect-square w-16 object-cover" />
         ) : (
           <span aria-hidden="true" className="aspect-square w-16 bg-page" />
         )}

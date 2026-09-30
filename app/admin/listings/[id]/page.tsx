@@ -68,7 +68,7 @@ export default async function ListingRiskPage({ params }: { params: Promise<{ id
               <li key={p.id} className="flex flex-col gap-1 text-sm">
                 {p.url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-                  <img src={p.url} alt={`Photo ${i + 1}, ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
+                  <img loading="lazy" decoding="async" src={p.url} alt={`Photo ${i + 1}, ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
                 ) : (
                   <span className="flex aspect-square items-center justify-center border border-rule text-steel">Not available</span>
                 )}

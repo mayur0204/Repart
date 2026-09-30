@@ -50,7 +50,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           {d.sellerPhotos.map((p) => (
             <li key={p.url}>
               {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-              <img src={p.url} alt={`Seller photo: ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
+              <img loading="lazy" decoding="async" src={p.url} alt={`Seller photo: ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
             </li>
           ))}
         </ul>

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useActionState, useContext, useEffect, type ComponentProps, type ReactNode } from "react";
+import { useOffline } from "@/components/layout/offline-banner";
 import { Button, type ButtonVariant } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
@@ -36,6 +37,7 @@ export function ActionForm({
   extraActions?: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const offline = useOffline();
   const toast = useToast();
   useEffect(() => {
     if (state?.ok && state.message) toast(state.message, "success");
@@ -52,7 +54,7 @@ export function ActionForm({
         ) : null}
         {children}
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" variant={submitVariant} disabled={pending} fullWidth={fullWidthSubmit}>
+          <Button type="submit" variant={submitVariant} disabled={pending || offline} fullWidth={fullWidthSubmit}>
             {submitLabel}
           </Button>
           {extraActions}
@@ -90,6 +92,7 @@ export function InlineAction({
   children?: ReactNode;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
+  const offline = useOffline();
   const toast = useToast();
   useEffect(() => {
     if (state?.message) toast(state.message, state.ok ? "success" : "error");
@@ -97,7 +100,7 @@ export function InlineAction({
   return (
     <form action={formAction}>
       {children}
-      <Button type="submit" variant={variant} disabled={pending}>
+      <Button type="submit" variant={variant} disabled={pending || offline}>
         {label}
       </Button>
     </form>
