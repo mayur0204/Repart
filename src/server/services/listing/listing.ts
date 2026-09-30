@@ -6,6 +6,7 @@ import { normalizePartNumber } from "@/lib/part-number";
 import { FieldError, NotFoundError, UserError } from "../../http/errors";
 import { consumeRateLimit } from "../../http/rate-limit";
 import { loadInterchange } from "../interchange/interchange";
+import { isMaterialPriceChange, onMaterialEdit } from "../inspection/label";
 import { getActiveSettings } from "../settings/settings";
 import { transitionListing } from "./state";
 import { checkSteps, MAX_DESCRIPTION, MIN_DESCRIPTION, type StepReport } from "./steps";
@@ -125,6 +126,9 @@ export async function savePart(db: Db, actor: Actor, listingId: string, input: u
       },
     });
   });
+  // PLAN §5.1 L9: a new category or part number is a material edit (ends any Partner Check label, M10).
+  if (categoryChanged) await onMaterialEdit(db, listingId, "category", actor.userId);
+  else if (listing.partNumberId !== null && listing.partNumberId !== part.id) await onMaterialEdit(db, listingId, "part_number", actor.userId);
 }
 
 // ── Step 3: condition ──
@@ -147,6 +151,9 @@ export async function saveCondition(db: Db, actor: Actor, listingId: string, ans
     where: { id: listingId },
     data: { checklistAnswers: clean, conditionScore: score, conditionGrade: grade, wizardStep: advance(listing.wizardStep, "condition") },
   });
+  // PLAN §5.1 L9: changed checklist answers are a material edit (M10 Partner Check label).
+  const before = (listing.checklistAnswers ?? null) as ChecklistAnswers | null;
+  if (before && items.some((i) => before[i.id] !== clean[i.id])) await onMaterialEdit(db, listingId, "checklist", actor.userId);
   return { score, grade };
 }
 
@@ -207,6 +214,9 @@ export async function savePrice(db: Db, actor: Actor, listingId: string, input: 
       wizardStep: advance(listing.wizardStep, "price"),
     },
   });
+  // PLAN §5.1 L9: a price change above settings.risk.materialPriceChangePercent is material (M10 Partner Check label).
+  const { settings } = await getActiveSettings(db);
+  if (isMaterialPriceChange(listing.pricePaise, data.priceRupees, settings)) await onMaterialEdit(db, listingId, "price", actor.userId);
 }
 
 // ── wizard state, preview, submit ──

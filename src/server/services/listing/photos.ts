@@ -7,6 +7,7 @@ import type { StorageProvider } from "../../adapters/storage/types";
 import { FieldError, NotFoundError, UserError } from "../../http/errors";
 import { logger } from "../../logger";
 import { recordAudit } from "../audit/audit";
+import { invalidatePartnerCheck } from "../inspection/label";
 import { enqueueOutbox } from "../outbox/outbox";
 import { EDITABLE, photoState } from "./listing";
 
@@ -76,6 +77,7 @@ export async function confirmPhotoUpload(db: Db, actor: Actor, photoId: string) 
       after: { photoId, shotType: photo.shotType },
       requestId: actor.requestId,
     });
+    await invalidatePartnerCheck(tx, photo.listingId, "photos", { type: "USER", id: actor.userId }); // PLAN §5.1 L9: photos are material
   });
 }
 
@@ -161,6 +163,7 @@ export async function deletePhoto(db: Db, deps: PhotoDeps, actor: Actor, photoId
       before: { photoId, shotType: photo.shotType },
       requestId: actor.requestId,
     });
+    await invalidatePartnerCheck(tx, photo.listingId, "photos", { type: "USER", id: actor.userId }); // PLAN §5.1 L9: photos are material
   });
   for (const key of [photo.storageKey, photo.incomingKey]) if (key) await deps.storage.delete(deps.bucket, key).catch(() => {});
 }

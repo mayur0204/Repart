@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { Prisma, type InspectionOutcome, type PrismaClient, type TrustLabel } from "@/generated/prisma/client";
+import { Prisma, type InspectionOutcome, type PrismaClient } from "@/generated/prisma/client";
 import { MAX_PHOTO_BYTES } from "@/lib/listing";
 import type { ShippingProvider } from "../../adapters/shipping/types";
 import type { StorageProvider } from "../../adapters/storage/types";
@@ -13,8 +13,8 @@ import { afterInspectionPassed, pickupSlots, resolveSlot, type PickupSlot } from
 import { transitionOrder } from "../order/state";
 import { enqueueOutbox } from "../outbox/outbox";
 import { refundableComponents, requestRefund } from "../payment/refunds";
-import { trustLabel } from "../risk/rules";
 import { getActiveSettings } from "../settings/settings";
+import { invalidatePartnerCheck, screeningLabel, validPartnerCheck } from "./label";
 
 /**
  * Partner Checks (M10; PLAN.md §5.2 O5, O10, O11; §6.2–§6.4). Slots reuse the M9 catalogue (next 3 business
@@ -39,6 +39,16 @@ export function istDay(t: Date): [Date, Date] {
   const ist = new Date(t.getTime() + IST_MS);
   const start = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()) - IST_MS;
   return [new Date(start), new Date(start + DAY_MS)];
+}
+
+/**
+ * Garage on-time metric (onTimeRate). A check is ON TIME if it is completed at any time on its scheduled date,
+ * i.e. before the end of the slot's IST calendar day: slot Tue 10:00–12:00, completed Tue 18:30 → on time;
+ * completed Wed 00:05 → late. The 2-hour slot is for planning, capacity and scheduling only; this whole-day rule
+ * applies to the metric alone, with no extra grace period.
+ */
+export function isOnTime(slotStart: Date, completedAt: Date): boolean {
+  return completedAt.getTime() < istDay(slotStart)[1].getTime();
 }
 
 // ── coverage, capacity, assignment ──
@@ -269,14 +279,14 @@ export async function submitInspection(db: Db, deps: InspectionDeps, actor: Acto
   const orderId = job.orderId;
   const mech = { type: "MECHANIC" as const, id: actor.userId };
   const passed = form.outcome !== "FAIL";
-  const onTime = !!job.slotStart && istDay(job.slotStart)[0].getTime() === istDay(now)[0].getTime();
+  const onTime = !!job.slotStart && isOnTime(job.slotStart, now);
   await db.$transaction(async (tx) => {
     const { count } = await tx.inspection.updateMany({
       where: { id: inspectionId, status: "SCHEDULED" },
       data: { status: "COMPLETED", outcome: form.outcome, notes: form.notes || null, checklistResults: form.checklistResults, measuredValues: form.measuredValues, completedAt: now, mechanicUserId: actor.userId },
     });
     if (!count) throw new UserError("This inspection was already submitted.");
-    // Garage quality stats. ponytail: "on time" = completed on the slot's IST day; a finer SLA can replace it later.
+    // Garage quality stats; "on time" is the whole-IST-day rule documented on isOnTime().
     const done = partner.inspectionsCompleted + 1;
     const fails = Math.round((partner.failRate ?? 0) * partner.inspectionsCompleted) + (passed ? 0 : 1);
     const onTimes = Math.round((partner.onTimeRate ?? 0) * partner.inspectionsCompleted) + (onTime ? 1 : 0);
@@ -292,6 +302,7 @@ export async function submitInspection(db: Db, deps: InspectionDeps, actor: Acto
       }
     } else {
       await tx.shipment.updateMany({ where: { orderId, direction: "FORWARD", status: "QUOTED" }, data: { status: "CANCELLED" } }); // release the unbooked pickup slot
+      await invalidatePartnerCheck(tx, job.listingId, "inspection_failed", mech, now); // PLAN §6.2: the latest inspection must be a pass
       await transitionOrder(tx, { orderId, event: "inspectionFailed", actor: mech, requestId: actor.requestId, reason: `Partner Check failed: ${form.notes}` });
       await requestRefund(tx, { orderId, components: await refundableComponents(tx, orderId), reason: "Partner Check failed (full refund including the check fee).", actor: mech, idempotencyKey: `refund:${orderId}:inspection_failed`, requestId: actor.requestId });
       const o = await tx.order.findUniqueOrThrow({ where: { id: orderId }, select: { buyerId: true, sellerId: true } });
@@ -308,23 +319,20 @@ export async function submitInspection(db: Db, deps: InspectionDeps, actor: Acto
 
 // ── Partner Check label ──
 
-/** "Inspected by [garage] on [date]. Visual and basic check." for the listing's latest passed check (PLAN.md §6.2). */
-export async function partnerCheckFor(db: Pick<Db, "inspection">, listingId: string) {
-  const i = await db.inspection.findFirst({ where: { listingId, status: "COMPLETED", outcome: { in: ["PASS", "PASS_WITH_NOTES"] } }, orderBy: { completedAt: "desc" }, select: { completedAt: true, partner: { select: { garageName: true } } } });
-  return i?.completedAt ? { garageName: i.partner.garageName, date: i.completedAt } : null;
+/** "Inspected by [garage] on [date]. Visual and basic check." while the listing's Partner Check is valid (see label.ts). */
+export async function partnerCheckFor(db: Db, listingId: string, now = new Date()) {
+  const { settings } = await getActiveSettings(db);
+  return validPartnerCheck(db, listingId, settings, now);
 }
 
-/** A-18: the label lasts `partnerCheckLabelDays` after the check; then the screening label is restored. */
+/** A-18: the label lasts `partnerCheckLabelDays` after the check (unless a material edit ended it earlier); then the screening label is restored. */
 export async function expirePartnerCheckLabels(db: Db, now = new Date()) {
   const { settings } = await getActiveSettings(db);
-  const cutoff = new Date(now.getTime() - settings.inspections.partnerCheckLabelDays * DAY_MS);
   const listings = await db.listing.findMany({ where: { trustLabel: "PARTNER_CHECK" }, select: { id: true } });
   let expired = 0;
   for (const l of listings) {
-    const last = await partnerCheckFor(db, l.id);
-    if (last && last.date >= cutoff) continue;
-    const ra = await db.riskAssessment.findFirst({ where: { listingId: l.id }, orderBy: { createdAt: "desc" }, select: { hadHardFailure: true, score: true } });
-    const label: TrustLabel = ra ? trustLabel(ra.hadHardFailure, ra.score, settings) : "SELLER_DECLARED";
+    if (await validPartnerCheck(db, l.id, settings, now)) continue;
+    const label = await screeningLabel(db, l.id, settings);
     await db.$transaction(async (tx) => {
       await tx.listing.update({ where: { id: l.id }, data: { trustLabel: label } });
       await recordAudit(tx, { actor: { type: "SYSTEM", id: null }, action: "listing.partner_check_expired", entity: { type: "Listing", id: l.id }, before: { trustLabel: "PARTNER_CHECK" }, after: { trustLabel: label } });
@@ -392,6 +400,27 @@ export async function setStaffActive(db: Db, admin: Actor, staffId: string, acti
   });
 }
 
+/**
+ * Admin reassignment choices for an order: every (garage, slot) pair where the garage is active, serves the seller's
+ * pickup pincode and still has capacity on that day. Manual choice may override the automatic ranking, never
+ * eligibility or capacity (the server re-checks both when the admin submits).
+ */
+export async function reassignmentOptions(db: Db, orderId: string, now = new Date()) {
+  const order = await db.order.findUnique({ where: { id: orderId }, select: { listing: { select: { pickupPincode: true } } } });
+  const pincode = order?.listing.pickupPincode;
+  if (!pincode) return [];
+  const options: Array<{ value: string; partnerId: string; garageName: string; servicePincodes: string[]; feePerInspection: number; slotId: string; slotStart: Date; free: number; capacity: number }> = [];
+  const partners = await db.mechanicPartner.findMany({ where: { active: true, servicePincodes: { has: pincode } }, select: { id: true, servicePincodes: true, feePerInspection: true } });
+  const extra = new Map(partners.map((p) => [p.id, p]));
+  for (const slot of pickupSlots(now)) {
+    for (const g of await rankGarages(db, pincode, slot.start)) {
+      const p = extra.get(g.id)!;
+      options.push({ value: `${g.id}|${slot.id}`, partnerId: g.id, garageName: g.garageName, servicePincodes: p.servicePincodes, feePerInspection: p.feePerInspection, slotId: slot.id, slotStart: slot.start, free: g.capacityPerDay - g.load, capacity: g.capacityPerDay });
+    }
+  }
+  return options;
+}
+
 export const reassignInput = z.object({
   orderId: z.string().min(1).max(64),
   slot: z.string().max(40),
@@ -405,7 +434,10 @@ export const reassignInput = z.object({
  * The previous open job is cancelled (or marked NO_SHOW). Never cancels or refunds the order (NO_SHOW has no automatic rules).
  */
 export async function reassignInspection(db: Db, admin: Actor, raw: unknown, now = new Date()) {
-  const input = parse(reassignInput, raw);
+  // The admin page submits one `choice` = "<garageId>|<slotId>" from reassignmentOptions().
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const [choiceGarage, choiceSlot] = typeof r.choice === "string" && r.choice.includes("|") ? r.choice.split("|") : [undefined, undefined];
+  const input = parse(reassignInput, { ...r, ...(choiceSlot ? { slot: choiceSlot, partnerId: choiceGarage } : {}) });
   const slot = resolveSlot(input.slot, now);
   const actor = { type: "ADMIN" as const, id: admin.userId };
   return db.$transaction(async (tx) => {

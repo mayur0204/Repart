@@ -20,11 +20,13 @@ import {
   partnerCheckFor,
   rankGarages,
   reassignInspection,
+  reassignmentOptions,
   requestInspectionPhoto,
   saveGarage,
   setStaffActive,
   submitInspection,
 } from "../../src/server/services/inspection/inspection";
+import { saveCondition, saveDetails, savePrice } from "../../src/server/services/listing/listing";
 import { payOrder, placeOrder } from "../../src/server/services/order/checkout";
 import { confirmOrder, pickupSlots } from "../../src/server/services/order/fulfilment";
 import { orderForUser, sellerOrder } from "../../src/server/services/order/read";
@@ -387,5 +389,131 @@ describe("admin garage management", () => {
     expect((await db.order.findUniqueOrThrow({ where: { id: orderId } })).state).toBe("INSPECTION_SCHEDULED");
     expect(await db.refund.count({ where: { payment: { orderId } } })).toBe(0);
     expect(await db.auditLog.count({ where: { entityId: now.id, action: "inspection.reassigned" } })).toBe(1);
+  });
+});
+
+describe("M10 hardening: Partner Check label and material edits (PLAN §6.2, §5.1 L9)", () => {
+  /** Runs a Partner Check to the given outcome on an existing listing (local pickup: no courier involved). */
+  async function passCheck(listingId: string, mech: { userId: string }, outcome = "PASS", notes = "") {
+    // Fixture: close the earlier order on this listing (one open order per listing) and relist it.
+    await db.order.updateMany({ where: { listingId, state: { notIn: ["COMPLETED", "CANCELLED", "RESOLVED_REFUND", "RESOLVED_RELEASE"] } }, data: { state: "COMPLETED" } });
+    await db.listing.update({ where: { id: listingId }, data: { status: "LIVE" } });
+    const { orderId } = await placeOrder(db, { shipping, payment }, { userId: BUYER }, { listingId });
+    await db.order.update({ where: { id: orderId }, data: { settingsVersion: await noAuditVersion(db) } });
+    await payOrder(db, { shipping, payment }, { userId: BUYER }, orderId, "http://x");
+    await pay(orderId);
+    await confirmOrder(db, { shipping }, seller, orderId, { inspectionSlot: slots()[0]!.id });
+    const id = (await inspectionOf(orderId))!.id;
+    await uploadRequiredPhotos(mech, id);
+    await submitInspection(db, ideps, mech, id, await answers(mech, id, outcome, notes));
+    return { orderId, inspectionId: id };
+  }
+  const label = async (listingId: string) => (await db.listing.findUniqueOrThrow({ where: { id: listingId } })).trustLabel;
+  /** Puts the listing back in the seller's hands (the wizard only edits DRAFT / CHANGES_REQUESTED listings). */
+  const editable = (listingId: string) => db.listing.update({ where: { id: listingId }, data: { status: "CHANGES_REQUESTED" } });
+  const priceForm = (l: { weightBand: string | null; dimensionBand: string | null }, rupees: number) => ({ priceRupees: String(rupees), pickupAddressId: "sample-addr-seller", weightBand: l.weightBand!, dimensionBand: l.dimensionBand!, fulfilmentMode: "LOCAL_PICKUP" });
+
+  it("a fresh pass shows the label; non-material edits keep it; a material edit ends it without touching history", async () => {
+    const pin = newPin();
+    const g = await garage([pin]);
+    const mech = await mechanicFor(g.id);
+    const listingId = await newListing("sample-listing-live-tier-c", { pickupPincode: pin, fulfilmentMode: "LOCAL_PICKUP" });
+    const { inspectionId } = await passCheck(listingId, mech);
+    expect(await label(listingId)).toBe("PARTNER_CHECK");
+    expect((await partnerCheckFor(db, listingId))!.garageName).toBe(g.garageName);
+
+    await editable(listingId);
+    const l = await db.listing.findUniqueOrThrow({ where: { id: listingId } });
+    // Non-material: the description, and a price change within materialPriceChangePercent (20%).
+    await saveDetails(db, seller, listingId, { description: "Genuine pads, used for one season, no cracks or glazing at all.", kmUsedApprox: "1200", reasonForSale: "Upgraded" });
+    await savePrice(db, seller, listingId, priceForm(l, Math.round((l.pricePaise! * 1.1) / 100)));
+    expect(await label(listingId)).toBe("PARTNER_CHECK");
+    expect(await partnerCheckFor(db, listingId)).not.toBeNull();
+
+    // Material: a price change above 20%.
+    await savePrice(db, seller, listingId, priceForm(l, Math.round((l.pricePaise! * 1.5) / 100)));
+    expect(await label(listingId)).not.toBe("PARTNER_CHECK");
+    expect(await partnerCheckFor(db, listingId)).toBeNull();
+    expect(await db.auditLog.findFirst({ where: { entityId: listingId, action: "listing.partner_check_invalidated" } })).toMatchObject({ actorId: SELLER });
+    // History is untouched: the inspection is still a completed PASS.
+    expect(await db.inspection.findUniqueOrThrow({ where: { id: inspectionId } })).toMatchObject({ status: "COMPLETED", outcome: "PASS" });
+    // The expiry sweep still runs normally and doesn't bring the label back.
+    await expirePartnerCheckLabels(db);
+    expect(await label(listingId)).not.toBe("PARTNER_CHECK");
+  });
+
+  it("a changed checklist is material (unchanged answers are not); a later new Partner Check establishes a new label", async () => {
+    const pin = newPin();
+    const g = await garage([pin]);
+    const mech = await mechanicFor(g.id);
+    const listingId = await newListing("sample-listing-live-tier-c", { pickupPincode: pin, fulfilmentMode: "LOCAL_PICKUP" });
+    const first = await passCheck(listingId, mech);
+    await editable(listingId);
+    const withCategory = await db.listing.findUniqueOrThrow({ where: { id: listingId }, select: { checklistAnswers: true, category: { select: { conditionChecklist: true } } } });
+    const now = (withCategory.checklistAnswers ?? {}) as Record<string, string>;
+    const items = withCategory.category!.conditionChecklist as Array<{ id: string }>;
+    const same = Object.fromEntries(items.map((i) => [i.id, now[i.id] ?? "NO"]));
+    await saveCondition(db, seller, listingId, same);
+    await saveCondition(db, seller, listingId, same); // re-saving identical answers: not material
+    expect(await label(listingId)).toBe("PARTNER_CHECK");
+    await saveCondition(db, seller, listingId, { ...same, [items[0]!.id]: same[items[0]!.id] === "YES" ? "NO" : "YES" });
+    expect(await label(listingId)).not.toBe("PARTNER_CHECK");
+
+    const second = await passCheck(listingId, mech);
+    expect(second.inspectionId).not.toBe(first.inspectionId);
+    expect(await label(listingId)).toBe("PARTNER_CHECK");
+    expect(await partnerCheckFor(db, listingId)).not.toBeNull();
+    expect(await db.inspection.count({ where: { listingId, status: "COMPLETED" } })).toBe(2);
+  });
+
+  it("a later failed check ends the earlier label (the latest inspection must be a pass)", async () => {
+    const pin = newPin();
+    const g = await garage([pin]);
+    const mech = await mechanicFor(g.id);
+    const listingId = await newListing("sample-listing-live-tier-c", { pickupPincode: pin, fulfilmentMode: "LOCAL_PICKUP" });
+    await passCheck(listingId, mech);
+    expect(await label(listingId)).toBe("PARTNER_CHECK");
+    await passCheck(listingId, mech, "FAIL", "Friction material cracked on the second look");
+    expect(await label(listingId)).not.toBe("PARTNER_CHECK");
+    expect(await partnerCheckFor(db, listingId)).toBeNull();
+  });
+});
+
+describe("M10 hardening: admin garage choice for reassignment", () => {
+  it("offers only active garages that serve the pincode and have capacity that day; reassignment by choice is audited", async () => {
+    const pin = newPin();
+    const eligible = await garage([pin], { capacityPerDay: 2 });
+    const inactive = await garage([pin], { active: false });
+    const elsewhere = await garage([newPin()]);
+    const full = await garage([pin], { capacityPerDay: 1, onTimeRate: 1 });
+    const day1 = slots()[0]!;
+    const day2 = slots()[4]!;
+    // `full` ranks first (highest on-time rate), so it takes the day-1 booking and is then full that day.
+    const filler = await paidOrder(pin);
+    await confirmOrder(db, { shipping }, seller, filler.orderId, { inspectionSlot: day1.id, slot: day1.id });
+    expect((await inspectionOf(filler.orderId))!.partnerId).toBe(full.id);
+    // This order's current booking is also at `full` (day 2), so `full` has no room on day 1 or day 2 (it still has room on day 3).
+    const { orderId } = await paidOrder(pin);
+    await confirmOrder(db, { shipping }, seller, orderId, { inspectionSlot: day2.id, slot: day2.id });
+    expect((await inspectionOf(orderId))!.partnerId).toBe(full.id);
+
+    const opts = await reassignmentOptions(db, orderId);
+    const ids = new Set(opts.map((o) => o.partnerId));
+    expect(ids.has(eligible.id)).toBe(true);
+    expect(ids.has(inactive.id)).toBe(false);
+    expect(ids.has(elsewhere.id)).toBe(false);
+    const fullDays = new Set(opts.filter((o) => o.partnerId === full.id).map((o) => new Date(o.slotStart.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10)));
+    const dayOf = (s: { start: Date }) => new Date(s.start.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 10);
+    expect(fullDays.has(dayOf(day1))).toBe(false);
+    expect(fullDays.has(dayOf(day2))).toBe(false);
+    expect(fullDays.has(dayOf(slots()[8]!))).toBe(true);
+    const pick = opts.find((o) => o.partnerId === eligible.id && o.slotId === day1.id)!;
+    expect(pick).toMatchObject({ garageName: eligible.garageName, servicePincodes: [pin], feePerInspection: 20_000, capacity: 2, free: 2 });
+
+    // A full garage can't be forced through the form either.
+    await expect(reassignInspection(db, ADMIN, { orderId, choice: `${full.id}|${day1.id}`, reason: "Try the full garage" })).rejects.toBeInstanceOf(FieldError);
+    const newId = await reassignInspection(db, ADMIN, { orderId, choice: pick.value, reason: "Seller asked for an earlier day" });
+    expect(await db.inspection.findUniqueOrThrow({ where: { id: newId } })).toMatchObject({ partnerId: eligible.id, slotStart: day1.start, status: "SCHEDULED" });
+    expect(await db.auditLog.findFirst({ where: { entityId: newId, action: "inspection.reassigned" } })).toMatchObject({ actorId: ADMIN.userId });
   });
 });

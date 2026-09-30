@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminTable, Td } from "@/components/admin/admin-table";
-import { GarageForm } from "../garage-form";
-import { ActionForm, FormInput, FormSelect, InlineAction } from "@/components/forms/action-form";
+import { ActionForm, FormInput, InlineAction } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
 import { Badge, DateText } from "@/components/ui/display";
 import { Checkbox } from "@/components/ui/field";
@@ -12,10 +11,10 @@ import { adminPage } from "@/server/auth/current";
 import { NotFoundError } from "@/server/http/errors";
 import { inspections } from "@/server/services";
 import { linkMechanic, reassignInspection, setStaffActive } from "../actions";
+import { GarageChoice } from "../garage-choice";
+import { GarageForm } from "../garage-form";
 
 export const metadata: Metadata = { title: "Garage | Admin | RePart" };
-
-const slotLabel = (s: { start: Date }) => s.start.toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 /** One garage: details, service area and capacity, staff links, and its Partner Checks with reassignment (PLAN.md §4.8). */
 export default async function GaragePage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +27,8 @@ export default async function GaragePage({ params }: { params: Promise<{ id: str
     if (err instanceof NotFoundError) notFound();
     throw err;
   }
+  const scheduled = g.inspections.filter((i) => i.status === "SCHEDULED" && i.orderId).map((i) => i.orderId!);
+  const options = new Map(await Promise.all(scheduled.map(async (orderId) => [orderId, await inspections.reassignmentOptions(orderId)] as const)));
   return (
     <Page title={g.garageName} actions={g.active ? <Badge tone="fit">Active</Badge> : <Badge tone="caution">Inactive</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -75,10 +76,7 @@ export default async function GaragePage({ params }: { params: Promise<{ id: str
                   <summary className="cursor-pointer text-action">Reschedule or reassign</summary>
                   <ActionForm action={reassignInspection} submitLabel="Book new slot">
                     <input type="hidden" name="orderId" value={i.orderId} />
-                    <FormSelect label="New slot" name="slot" defaultValue={g.slots[0]?.id}>
-                      {g.slots.map((s) => <option key={s.id} value={s.id}>{slotLabel(s)}</option>)}
-                    </FormSelect>
-                    <FormInput label="Garage id (blank: best available)" name="partnerId" />
+                    <GarageChoice options={options.get(i.orderId) ?? []} />
                     <Checkbox name="noShow" label="Mark the current appointment as a no-show" />
                     <FormInput label="Reason" name="reason" />
                   </ActionForm>

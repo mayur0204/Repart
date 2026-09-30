@@ -4,6 +4,7 @@ import { maskContactDetails } from "@/lib/listing";
 import type { StorageProvider } from "../../adapters/storage/types";
 import type { VisionProvider } from "../../adapters/vision/types";
 import { logger } from "../../logger";
+import { validPartnerCheck } from "../inspection/label";
 import { loadInterchange } from "../interchange/interchange";
 import { getWizardState } from "../listing/listing";
 import { transitionListing } from "../listing/state";
@@ -158,7 +159,8 @@ export async function runRiskCheck(db: Db, deps: RiskDeps, listingId: string): P
         latestRiskScore: routing.score,
         inspectionRequirement: routing.requirement,
         inspectionReason: routing.reason,
-        trustLabel: routing.trustLabel ?? "SELLER_DECLARED",
+        // PLAN §6.2: the label is recomputed on screening; a still-valid Partner Check (M10) outranks the screening label.
+        trustLabel: routing.decision === "LIVE" && (await validPartnerCheck(tx, listingId, state.settings)) ? "PARTNER_CHECK" : (routing.trustLabel ?? "SELLER_DECLARED"),
         sellerMessage: hardMessages.length ? hardMessages.join(" ") : null,
       },
     });

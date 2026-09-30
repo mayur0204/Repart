@@ -287,4 +287,5 @@ export const inspections = {
   linkMechanic: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.linkMechanic(db, admin, input),
   setStaffActive: (admin: { userId: string; requestId?: string }, staffId: string, active: boolean) => inspectionService.setStaffActive(db, admin, staffId, active),
   reassign: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.reassignInspection(db, admin, input),
+  reassignmentOptions: (orderId: string) => inspectionService.reassignmentOptions(db, orderId),
 };

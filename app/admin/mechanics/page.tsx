@@ -1,25 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminTable, Td } from "@/components/admin/admin-table";
-import { GarageForm } from "./garage-form";
-import { ActionForm, FormInput, FormSelect } from "@/components/forms/action-form";
+import { ActionForm, FormInput } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
 import { Badge, DateText } from "@/components/ui/display";
 import { PermissionDenied } from "@/components/ui/states";
 import { adminPage } from "@/server/auth/current";
 import { inspections } from "@/server/services";
-import { pickupSlots } from "@/server/services/order/fulfilment";
 import { reassignInspection } from "./actions";
+import { GarageChoice } from "./garage-choice";
+import { GarageForm } from "./garage-form";
 
 export const metadata: Metadata = { title: "Mechanics | Admin | RePart" };
-
-const slotLabel = (s: { start: Date }) => s.start.toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 /** Partner garages: service areas, capacity, today's load, and Partner Checks waiting for a garage (PLAN.md §4.8). */
 export default async function MechanicsPage() {
   if (!(await adminPage("/admin/mechanics"))) return <PermissionDenied />;
   const { garages, waiting } = await inspections.garages();
-  const slots = pickupSlots(new Date());
+  const options = new Map(await Promise.all(waiting.map(async (o) => [o.id, await inspections.reassignmentOptions(o.id)] as const)));
   return (
     <Page title="Partner garages" intro="Garages that do Partner Checks, their service areas and daily capacity.">
       {waiting.length ? (
@@ -32,9 +30,7 @@ export default async function MechanicsPage() {
                 <Link href={`/admin/orders/${o.id}`} className="text-action underline underline-offset-4">{o.listing.title ?? o.listing.partName ?? o.id}</Link>, pincode {o.listing.pickupPincode ?? "unknown"}, ordered <DateText date={o.createdAt} />
               </p>
               <input type="hidden" name="orderId" value={o.id} />
-              <FormSelect label="Slot" name="slot" defaultValue={slots[0]?.id}>
-                {slots.map((s) => <option key={s.id} value={s.id}>{slotLabel(s)}</option>)}
-              </FormSelect>
+              <GarageChoice options={options.get(o.id) ?? []} />
               <FormInput label="Reason" name="reason" defaultValue="No garage was available when the seller confirmed" />
             </ActionForm>
           ))}
