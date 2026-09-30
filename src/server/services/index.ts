@@ -12,6 +12,7 @@ import * as photoService from "./listing/photos";
 import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
 import * as orderCheckout from "./order/checkout";
+import * as adminService from "./admin/admin";
 import * as orderFulfilment from "./order/fulfilment";
 import * as disputeService from "./order/disputes";
 import * as inspectionService from "./inspection/inspection";
@@ -309,4 +310,21 @@ export const disputes = {
   // Worker jobs
   acceptanceTimeout: (orderId: string) => disputeService.acceptanceTimeout(db, orderId),
   holdDeadlineWatch: () => disputeService.holdDeadlineWatch(db),
+};
+
+/** Admin overview, orders, reports, users/roles, agreement, training-data export and audit viewer (M12). */
+export const admin = {
+  overview: () => adminService.overviewMetrics(db),
+  searchOrders: (filter: unknown) => adminService.searchOrders(db, filter),
+  orderHistory: (orderId: string) => adminService.orderHistory(db, orderId),
+  reports: (filter: unknown) => adminService.listReports(db, filter),
+  moderateReport: (a: { userId: string; requestId?: string }, reportId: string, decision: "ACTIONED" | "DISMISSED", note?: string) => adminService.moderateReport(db, a, reportId, decision, note),
+  users: (filter: unknown) => adminService.listUsers(db, filter),
+  user: (userId: string) => adminService.userDetail(db, userId),
+  changeRole: (a: { userId: string; requestId?: string }, input: unknown) => adminService.changeRole(db, a, input),
+  changeStatus: (a: { userId: string; requestId?: string }, input: unknown) => adminService.changeStatus(db, a, input),
+  agreement: (includeSample: boolean) => adminService.agreementData(db, { includeSample }),
+  exportStream: (includeSample: boolean) => adminService.trainingCsvStream(db, { includeSample }),
+  auditExport: (a: { userId: string; requestId?: string }, includeSample: boolean) => adminService.auditExport(db, a, { includeSample }),
+  audit: (filter: unknown) => adminService.listAudit(db, filter),
 };

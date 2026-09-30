@@ -131,7 +131,7 @@ export async function adminOrder(db: Db, orderId: string) {
       ...orderSelect,
       buyer: { select: { name: true } },
       seller: { select: { name: true, payoutAccount: { select: { status: true, providerVendorId: true } } } },
-      dispute: { select: { status: true, reason: true, description: true } },
+      dispute: { select: { id: true, status: true, reason: true, description: true, createdAt: true, sellerRespondedAt: true } },
       payment: { select: { status: true, provider: true, providerOrderId: true, providerPaymentId: true, paidAt: true, amountPaise: true, vendorId: true, vendorSettlementStatus: true, settlementEligibleAt: true, refunds: { select: { id: true, amountPaise: true, vendorPortionPaise: true, merchantPortionPaise: true, status: true, reason: true, afterSettlement: true, withSplitReversal: true, createdAt: true }, orderBy: { createdAt: "asc" } } } },
       reconciliationMismatches: { select: { id: true, kind: true, resolvedAt: true, expected: true, actual: true }, orderBy: { id: "desc" } },
     },

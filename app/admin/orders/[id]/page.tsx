@@ -9,7 +9,10 @@ import { formatPrice } from "@/lib/format";
 import { ORDER_STATE_TEXT, REFUND_TEXT, SETTLEMENT_TEXT } from "@/lib/order-state";
 import { adminPage } from "@/server/auth/current";
 import { NotFoundError } from "@/server/http/errors";
-import { orders } from "@/server/services";
+import Link from "next/link";
+import { AdminTable, Td } from "@/components/admin/admin-table";
+import { DISPUTE_REASON_TEXT, DISPUTE_STATUS_TEXT } from "@/lib/dispute";
+import { admin, orders } from "@/server/services";
 import { ShipmentTracking } from "@/components/order/timeline";
 import { env } from "@/server/env";
 import { advanceShipment, cancelAndRefund, confirmDeliveryReturn, recheckPayment, refundCancelledOrder, resolveOrderDispute } from "../actions";
@@ -43,6 +46,8 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     throw err;
   }
   const p = o.payment;
+  const history = await admin.orderHistory(o.id);
+  const inspection = o.inspections[0] ?? null;
   const devTools = process.env.NODE_ENV !== "production" && env().SHIPPING_PROVIDER === "mock";
   return (
     <Page title={o.title} intro={`Order ${o.id}`} actions={<Badge>{ORDER_STATE_TEXT[o.state] ?? o.state}</Badge>}>
@@ -120,6 +125,63 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           </ul>
         </section>
       ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+          <h2 className="text-xl">Partner Check</h2>
+          {inspection ? (
+            <p>
+              {inspection.partner.garageName}: {inspection.status.toLowerCase().replace(/_/g, " ")}
+              {inspection.outcome ? `, ${inspection.outcome.toLowerCase().replace(/_/g, " ")}` : ""} ({inspection.reason.toLowerCase().replace(/_/g, " ")})
+              {inspection.notes ? `. ${inspection.notes}` : ""}
+            </p>
+          ) : (
+            <p>{o.inspectionReason ? "Required, no garage booked yet." : "None."}</p>
+          )}
+        </section>
+        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+          <h2 className="text-xl">Dispute</h2>
+          {o.dispute ? (
+            <p>
+              {DISPUTE_REASON_TEXT[o.dispute.reason] ?? o.dispute.reason}: {DISPUTE_STATUS_TEXT[o.dispute.status] ?? o.dispute.status}.{" "}
+              <Link href={`/admin/disputes/${o.dispute.id}`} className="text-action underline underline-offset-4">Open dispute</Link>
+            </p>
+          ) : (
+            <p>None.</p>
+          )}
+        </section>
+      </div>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl">Event history</h2>
+        <AdminTable head={["When", "From", "To", "Event", "By"]}>
+          {history.events.map((e) => (
+            <tr key={e.id}>
+              <Td><DateText date={e.createdAt} /></Td>
+              <Td className="text-sm">{e.fromState ? (ORDER_STATE_TEXT[e.fromState] ?? e.fromState) : ""}</Td>
+              <Td className="text-sm">{ORDER_STATE_TEXT[e.toState] ?? e.toState}</Td>
+              <Td className="text-sm">{e.event}</Td>
+              <Td className="text-sm">{e.actorType.toLowerCase().replace("_", " ")}{e.actorId ? ` ${e.actorId}` : ""}</Td>
+            </tr>
+          ))}
+        </AdminTable>
+      </section>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xl">Payment events</h2>
+        {history.paymentEvents.length ? (
+          <AdminTable head={["When", "Type", "Provider event"]}>
+            {history.paymentEvents.map((e) => (
+              <tr key={e.id}>
+                <Td><DateText date={e.createdAt} /></Td>
+                <Td className="text-sm">{e.type}</Td>
+                <Td className="break-all text-sm">{e.providerEventId ?? ""}</Td>
+              </tr>
+            ))}
+          </AdminTable>
+        ) : (
+          <p className="text-sm text-steel">No payment events.</p>
+        )}
+      </section>
 
       {o.reconciliationMismatches.length ? (
         <section className="flex flex-col gap-2 border border-caution bg-surface p-4 text-sm">
