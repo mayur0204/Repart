@@ -80,6 +80,12 @@ const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 const NOTICES: Partial<Record<OrderState, { to: "buyer" | "seller" | "both"; title: string; body: string }>> = {
   AWAITING_SELLER: { to: "both", title: "Payment received", body: "The payment for this order is confirmed and held safely until the buyer accepts the part." },
   CANCELLED: { to: "both", title: "Order cancelled", body: "This order was cancelled. Any payment taken will be refunded." },
+  // M9 fulfilment steps
+  INSPECTION_SCHEDULED: { to: "buyer", title: "Seller confirmed", body: "The seller confirmed the part is available. RePart is arranging the Partner Check." },
+  PICKUP_SCHEDULED: { to: "both", title: "Pickup booked", body: "The courier pickup is booked. Pack the part using the packaging guide before the pickup slot." },
+  AWAITING_HANDOVER: { to: "both", title: "Ready for handover", body: "Agree a time and place in Messages. The buyer confirms the handover in the order page." },
+  IN_TRANSIT: { to: "both", title: "Part picked up", body: "The courier has picked up the part and it is on its way." },
+  ACCEPTANCE_WINDOW: { to: "both", title: "Part received", body: "The buyer has the part. The acceptance window for checking it has started." },
   COMPLETED: { to: "both", title: "Order completed", body: "The buyer accepted the part. The seller's payout is being released." },
   DISPUTED: { to: "both", title: "Problem reported", body: "A problem was reported with this order. RePart will review it." },
   RESOLVED_REFUND: { to: "both", title: "Dispute resolved: refund", body: "The dispute was resolved with a refund to the buyer." },

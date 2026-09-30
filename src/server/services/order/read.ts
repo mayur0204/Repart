@@ -1,7 +1,9 @@
 import "server-only";
 import type { PrismaClient } from "@/generated/prisma/client";
+import { hoursLeft, orderTimeline } from "@/lib/order-state";
 import { NotFoundError } from "../../http/errors";
 import { recordAudit } from "../audit/audit";
+import { buyerCancellationPreview, pickupSlots } from "./fulfilment";
 import { orderMoneyView } from "./pricing";
 
 /** Read models for order pages. Buyers and sellers only ever see their own orders (checked here, not in the page). */
@@ -22,20 +24,63 @@ const orderSelect = {
   merchantSharePaise: true,
   paymentExpiresAt: true,
   sellerConfirmBy: true,
+  acceptanceEndsAt: true,
   autoReleaseAt: true,
   deadlineBreachedAt: true,
   cancelReason: true,
+  inspectionReason: true,
   createdAt: true,
-  listing: { select: { id: true, title: true, partName: true } },
+  listingId: true,
+  listing: { select: { id: true, title: true, partName: true, category: { select: { name: true, packagingGuide: true, shippingRestriction: true } } } },
+  shipments: {
+    where: { direction: "FORWARD" as const },
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { id: true, status: true, awb: true, provider: true, pickupSlotStart: true, pickupSlotEnd: true, etaDate: true, trackingEvents: { select: { status: true, description: true, location: true, occurredAt: true }, orderBy: { occurredAt: "asc" as const } } },
+  },
   payment: { select: { status: true, provider: true, paidAt: true, vendorSettlementStatus: true, settlementEligibleAt: true, refunds: { select: { id: true, amountPaise: true, status: true, createdAt: true, afterSettlement: true }, orderBy: { createdAt: "asc" as const } } } },
   events: { select: { toState: true, event: true, createdAt: true }, orderBy: { createdAt: "asc" as const } },
 } as const;
 
-export async function orderForUser(db: Db, userId: string, orderId: string) {
+export async function orderForUser(db: Db, userId: string, orderId: string, now = new Date()) {
   const o = await db.order.findUnique({ where: { id: orderId }, select: orderSelect });
   if (!o || (o.buyerId !== userId && o.sellerId !== userId)) throw new NotFoundError("order");
   const role = o.buyerId === userId ? ("buyer" as const) : ("seller" as const);
-  return { ...o, role, title: o.listing.title ?? o.listing.partName ?? "Part", money: orderMoneyView(o) };
+  const conversation = await db.conversation.findUnique({ where: { listingId_buyerId: { listingId: o.listingId, buyerId: o.buyerId } }, select: { id: true } });
+  return {
+    ...o,
+    role,
+    title: o.listing.title ?? o.listing.partName ?? "Part",
+    money: orderMoneyView(o),
+    shipment: o.shipments[0] ?? null,
+    timeline: orderTimeline({ state: o.state, inspection: !!o.inspectionReason, delivery: o.fulfilmentMode === "DELIVERY", events: o.events }),
+    sellerHoursLeft: o.state === "AWAITING_SELLER" ? hoursLeft(o.sellerConfirmBy, now) : null,
+    acceptanceHoursLeft: o.state === "ACCEPTANCE_WINDOW" ? hoursLeft(o.acceptanceEndsAt, now) : null,
+    paymentOpen: o.state === "CREATED" && (!o.paymentExpiresAt || o.paymentExpiresAt > now),
+    conversationId: conversation?.id ?? null,
+    cancelRefund: role === "buyer" ? await buyerCancellationPreview(db, userId, orderId) : null,
+  };
+}
+
+/** "Orders to handle" first, then everything else (PLAN.md §4.4 /seller/orders). */
+export async function sellerOrders(db: Db, sellerId: string, now = new Date()) {
+  const rows = await db.order.findMany({
+    where: { sellerId, state: { not: "CREATED" } }, // unpaid checkouts aren't the seller's business yet
+    select: { id: true, state: true, vendorSharePaise: true, sellerConfirmBy: true, fulfilmentMode: true, createdAt: true, listing: { select: { title: true, partName: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 200,
+  });
+  const toHandle = new Set(["AWAITING_SELLER", "INSPECTION_PASSED", "AWAITING_HANDOVER", "PICKUP_SCHEDULED"]);
+  const view = rows.map((r) => ({ ...r, title: r.listing.title ?? r.listing.partName ?? "Part", hoursLeft: r.state === "AWAITING_SELLER" ? hoursLeft(r.sellerConfirmBy, now) : null }));
+  return { toHandle: view.filter((r) => toHandle.has(r.state)), others: view.filter((r) => !toHandle.has(r.state)) };
+}
+
+/** The seller's order page: only for the seller of this order. Offers pickup slots only when a slot can be chosen now. */
+export async function sellerOrder(db: Db, sellerId: string, orderId: string, now = new Date()) {
+  const o = await orderForUser(db, sellerId, orderId, now);
+  if (o.role !== "seller") throw new NotFoundError("order");
+  const needsSlot = o.fulfilmentMode === "DELIVERY" && (o.state === "AWAITING_SELLER" || o.state === "INSPECTION_PASSED");
+  return { ...o, slots: needsSlot ? pickupSlots(now).map((s) => ({ id: s.id, start: s.start, end: s.end })) : [] };
 }
 
 export async function ordersForUser(db: Db, userId: string) {

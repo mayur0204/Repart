@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "../db";
-import { adapters } from "../adapters";
+import { adapters, shippingWebhookSecret } from "../adapters";
 import { env } from "../env";
 import * as addressService from "./address/address";
 import * as catalogueAdmin from "./catalogue/admin";
@@ -12,6 +12,8 @@ import * as photoService from "./listing/photos";
 import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
 import * as orderCheckout from "./order/checkout";
+import * as orderFulfilment from "./order/fulfilment";
+import * as tracking from "./shipping/tracking";
 import * as orderLifecycle from "./order/lifecycle";
 import * as orderRead from "./order/read";
 import * as paymentEvents from "./payment/payment-events";
@@ -239,4 +241,25 @@ export const orders = {
   processRefund: (refundId: string) => refundService.processRefund(db, adapters().payment, refundId),
   sweep: () => orderLifecycle.sweepOrders(db, adapters().payment),
   reconcile: () => reconciliationService.runReconciliation(db, adapters().payment),
+};
+
+/** Seller order handling and shipping (M9). The courier is chosen by SHIPPING_PROVIDER; refunds reuse the M8 refund service. */
+export const fulfilment = {
+  sellerOrders: (sellerId: string) => orderRead.sellerOrders(db, sellerId),
+  sellerOrder: (sellerId: string, orderId: string) => orderRead.sellerOrder(db, sellerId, orderId),
+  confirm: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderFulfilment.confirmOrder(db, adapters(), actor, orderId, input),
+  decline: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderFulfilment.declineOrder(db, actor, orderId, input),
+  schedulePickup: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderFulfilment.schedulePickup(db, adapters(), actor, orderId, input),
+  afterInspectionPassed: (orderId: string) => orderFulfilment.afterInspectionPassed(db, adapters(), orderId),
+  buyerCancel: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderFulfilment.buyerCancelOrder(db, adapters(), actor, orderId, input),
+  confirmHandover: (actor: { userId: string; requestId?: string }, orderId: string) => orderFulfilment.confirmHandover(db, actor, orderId),
+  adminConfirmReturn: (admin: { userId: string; requestId?: string }, orderId: string, input: unknown) => orderFulfilment.adminConfirmReturn(db, admin, orderId, input),
+  /** Courier webhook. `provider` must be the configured courier, so another provider's route can't be used. */
+  trackingWebhook: (provider: string, rawBody: string, headers: Headers) => {
+    const shipping = adapters().shipping;
+    if (shipping.name !== provider) return Promise.resolve({ status: 404, outcome: "rejected" as const });
+    return tracking.receiveTrackingWebhook(db, shipping, rawBody, headers);
+  },
+  devAdvance: (orderId: string, status: (typeof tracking.DEV_TRACKING_STATUSES)[number]) =>
+    tracking.devAdvanceShipment(db, adapters().shipping, shippingWebhookSecret(), orderId, status),
 };

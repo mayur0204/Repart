@@ -23,6 +23,7 @@ export default async function SellerDashboard() {
       title="Your listings"
       actions={
         <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/seller/orders" variant="secondary">Orders</ButtonLink>
           <ButtonLink href="/seller/payouts" variant="secondary">Payouts</ButtonLink>
           <ButtonLink href="/sell">Sell a part</ButtonLink>
         </div>

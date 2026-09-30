@@ -8,7 +8,8 @@ export type Shipment = { shipmentId: string; awb: string; pickupAt: Date };
 export type TrackingEvent = {
   providerEventId: string;
   shipmentId: string;
-  status: "BOOKED" | "PICKED_UP" | "IN_TRANSIT" | "OUT_FOR_DELIVERY" | "DELIVERED" | "RTO" | "CANCELLED";
+  /** DELIVERY_FAILED: an attempt failed (may be re-attempted). RETURNED: back with the seller (RTO). */
+  status: "BOOKED" | "PICKED_UP" | "IN_TRANSIT" | "OUT_FOR_DELIVERY" | "DELIVERED" | "DELIVERY_FAILED" | "RETURNED" | "CANCELLED";
   at: Date;
   location?: string;
 };
@@ -23,6 +24,7 @@ export interface ShippingProvider {
   bookPickup(input: BookingInput): Promise<Shipment>;
   cancel(shipmentId: string): Promise<void>;
   bookReturn(input: BookingInput): Promise<Shipment>;
-  verifyWebhook(rawBody: string, headers: Headers): boolean;
+  /** Signature + timestamp (replay) check on the raw body. Never throws for bad input. */
+  verifyWebhook(rawBody: string, headers: Headers, now?: Date): boolean;
   parseTracking(rawBody: string): TrackingEvent;
 }

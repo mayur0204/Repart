@@ -29,6 +29,12 @@ export type Adapters = {
 // Dev-only fallback so mocks work before MOCK_WEBHOOK_SECRET is set; env-schema refuses mock payments in production.
 const DEV_WEBHOOK_SECRET = "dev-only-mock-webhook-secret";
 
+/** The secret the mock courier signs and verifies tracking webhooks with (also used by the dev "advance shipment" tool). */
+export function shippingWebhookSecret(): string {
+  const e = env();
+  return e.SHIPPING_WEBHOOK_SECRET ?? e.MOCK_WEBHOOK_SECRET ?? DEV_WEBHOOK_SECRET;
+}
+
 function createStorage(): StorageProvider {
   const e = env();
   switch (e.STORAGE_PROVIDER) {
@@ -54,7 +60,7 @@ export function adapters(): Adapters {
   cached = {
     otp: createMockOtpProvider(),
     payment: e.PAYMENT_PROVIDER === "cashfree" ? createCashfreePaymentProvider(cashfreeFromEnv()) : createMockPaymentProvider({ webhookSecret, baseUrl: e.APP_BASE_URL }),
-    shipping: createMockShippingProvider({ webhookSecret: e.SHIPPING_WEBHOOK_SECRET ?? webhookSecret }),
+    shipping: createMockShippingProvider({ webhookSecret: shippingWebhookSecret() }),
     vision: createMockVisionProvider(),
     storage: createStorage(),
     notification: createMockNotificationProvider(),

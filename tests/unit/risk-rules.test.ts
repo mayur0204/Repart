@@ -226,5 +226,5 @@ describe("check-status route", () => {
   it("returns 401 when signed out", async () => {
     const { GET } = await import("../../app/api/listings/[id]/check-status/route");
     expect((await GET(new Request("http://x"), { params: Promise.resolve({ id: "abc" }) })).status).toBe(401);
-  }, 30_000); // first import loads the whole services layer (sharp, storage clients)
+  }, 60_000); // first import loads the whole services layer (sharp, storage clients, payments, shipping); slow under full-suite load
 });

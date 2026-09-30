@@ -1,8 +1,16 @@
 import "server-only";
-import { verifySignature } from "../signing";
+import { signBody, verifySignature } from "../signing";
 import type { Parcel, Pincode, ShippingProvider, TrackingEvent } from "./types";
 
 export const MOCK_SHIPPING_SIGNATURE_HEADER = "x-mock-signature";
+export const MOCK_SHIPPING_TIMESTAMP_HEADER = "x-mock-timestamp";
+/** Same window as the payment webhooks: older (or newer) deliveries are rejected as replays. */
+export const SHIPPING_WEBHOOK_MAX_AGE_MS = 5 * 60 * 1000;
+
+/** Signs a mock tracking webhook like the payment webhooks: HMAC-SHA256 over timestamp + raw body. */
+export function signMockTracking(secret: string, rawBody: string, timestampMs: number): Headers {
+  return new Headers({ [MOCK_SHIPPING_TIMESTAMP_HEADER]: String(timestampMs), [MOCK_SHIPPING_SIGNATURE_HEADER]: signBody(secret, `${timestampMs}${rawBody}`), "content-type": "application/json" });
+}
 
 /** Deterministic distance band: same sorting district (first 3 digits) = 0, same postal zone (first digit) = 1, else 2. */
 export function distanceBand(from: Pincode, to: Pincode): 0 | 1 | 2 {
@@ -45,8 +53,10 @@ export function createMockShippingProvider(opts: { webhookSecret: string }): Shi
     async bookReturn(input) {
       return book(input.orderId, input.pickupSlot, "mock_return");
     },
-    verifyWebhook(rawBody, headers) {
-      return verifySignature(opts.webhookSecret, rawBody, headers.get(MOCK_SHIPPING_SIGNATURE_HEADER));
+    verifyWebhook(rawBody, headers, now = new Date()) {
+      const ts = Number(headers.get(MOCK_SHIPPING_TIMESTAMP_HEADER));
+      if (!Number.isFinite(ts) || Math.abs(now.getTime() - ts) > SHIPPING_WEBHOOK_MAX_AGE_MS) return false;
+      return verifySignature(opts.webhookSecret, `${ts}${rawBody}`, headers.get(MOCK_SHIPPING_SIGNATURE_HEADER));
     },
     parseTracking(rawBody) {
       const raw = JSON.parse(rawBody) as Omit<TrackingEvent, "at"> & { at: string };

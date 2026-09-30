@@ -10,7 +10,9 @@ import { ORDER_STATE_TEXT, REFUND_TEXT, SETTLEMENT_TEXT } from "@/lib/order-stat
 import { adminPage } from "@/server/auth/current";
 import { NotFoundError } from "@/server/http/errors";
 import { orders } from "@/server/services";
-import { cancelAndRefund, recheckPayment, refundCancelledOrder, resolveOrderDispute } from "../actions";
+import { ShipmentTracking } from "@/components/order/timeline";
+import { env } from "@/server/env";
+import { advanceShipment, cancelAndRefund, confirmDeliveryReturn, recheckPayment, refundCancelledOrder, resolveOrderDispute } from "../actions";
 
 export const metadata: Metadata = { title: "Order | Admin | RePart" };
 
@@ -41,6 +43,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
     throw err;
   }
   const p = o.payment;
+  const devTools = process.env.NODE_ENV !== "production" && env().SHIPPING_PROVIDER === "mock";
   return (
     <Page title={o.title} intro={`Order ${o.id}`} actions={<Badge>{ORDER_STATE_TEXT[o.state] ?? o.state}</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -72,6 +75,37 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           </InlineAction>
         </section>
       </div>
+
+      {o.shipments[0] ? (
+        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+          <h2 className="text-xl">Shipment</h2>
+          <ShipmentTracking shipment={o.shipments[0]} />
+          {o.state === "IN_TRANSIT" && ["FAILED", "RETURNED_TO_ORIGIN"].includes(o.shipments[0].status) ? (
+            <ActionForm action={confirmDeliveryReturn} submitLabel="Confirm return, cancel and refund">
+              <input type="hidden" name="orderId" value={o.id} />
+              <p className="text-sm">The courier reported a delivery problem. Only confirm once the part is back with the seller: the buyer is refunded in full and the listing goes live again.</p>
+              <FormInput label="Reason" name="reason" required />
+              <FormSelect label="Is the part back with the seller?" name="returned" defaultValue="">
+                <option value="">Not confirmed yet</option>
+                <option value="yes">Yes, the seller has it back</option>
+              </FormSelect>
+            </ActionForm>
+          ) : null}
+          {devTools && o.shipments[0].awb ? (
+            <ActionForm action={advanceShipment} submitLabel="Send courier event" submitVariant="secondary">
+              <input type="hidden" name="orderId" value={o.id} />
+              <FormSelect label="Development only: simulate a courier event" name="status" defaultValue="PICKED_UP">
+                <option value="PICKED_UP">Picked up</option>
+                <option value="IN_TRANSIT">In transit</option>
+                <option value="OUT_FOR_DELIVERY">Out for delivery</option>
+                <option value="DELIVERED">Delivered</option>
+                <option value="DELIVERY_FAILED">Delivery failed</option>
+                <option value="RETURNED">Returned to seller</option>
+              </FormSelect>
+            </ActionForm>
+          ) : null}
+        </section>
+      ) : null}
 
       {p?.refunds.length ? (
         <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
