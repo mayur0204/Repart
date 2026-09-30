@@ -15,6 +15,7 @@ import { confirmFromProvider, receivePaymentWebhook } from "../../src/server/ser
 import { runReconciliation } from "../../src/server/services/payment/reconciliation";
 import { applyRefundStatus, processRefund } from "../../src/server/services/payment/refunds";
 import { releaseSettlement, syncSettlement } from "../../src/server/services/payment/settlement";
+import { noAuditVersion, removeSettingsFixtures } from "../setup/settings-fixtures";
 import { testPrisma } from "../setup/test-db";
 
 let db: PrismaClient;
@@ -65,6 +66,7 @@ async function newListing(over: Prisma.ListingUncheckedCreateInput | Record<stri
 async function createdOrder(p: PaymentProvider, buyer = BUYER) {
   const listingId = await newListing();
   const { orderId } = await placeOrder(db, deps(p), { userId: buyer }, { listingId, addressId: buyer === BUYER ? ADDR : "sample-addr-buyer-2" });
+  await db.order.update({ where: { id: orderId }, data: { settingsVersion: await noAuditVersion(db) } }); // M10 audit selection is random per order id: keep these M8 flows deterministic
   await payOrder(db, deps(p), { userId: buyer }, orderId, "http://localhost:3000");
   return { orderId, listingId };
 }
@@ -84,6 +86,7 @@ beforeAll(async () => {
   await seed(db);
 });
 afterAll(async () => {
+  await removeSettingsFixtures(db);
   await db.$disconnect();
 });
 

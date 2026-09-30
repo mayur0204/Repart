@@ -12,7 +12,7 @@ import { GRADE_TEXT, type Grade } from "@/lib/listing";
 import { withNext } from "@/lib/return-to";
 import { partNumberPath } from "@/lib/slug";
 import { buyerContext } from "@/server/buyer-context";
-import { catalogue, publicSearch } from "@/server/services";
+import { catalogue, inspections, publicSearch } from "@/server/services";
 import { REPORT_REASONS } from "@/server/services/search/public";
 import { parseSearchQuery } from "@/server/services/search/search";
 import { startConversation } from "../../messages/actions";
@@ -49,7 +49,9 @@ export default async function ListingPage({ params, searchParams }: Props) {
   const l = await publicSearch.listing(id, { vehicle: ctx.vehicle, pincode: ctx.pincode });
   if (!l) notFound();
   const [saved, vehicles] = await Promise.all([ctx.user ? publicSearch.isSaved(ctx.user.id, id) : false, l.fit.state === "NO_VEHICLE" ? catalogue.vehicles() : null]);
-  const available = l.status === "LIVE";
+  // M10: a required Partner Check needs a garage in the seller's area (A-12); the label names the garage and date.
+  const [checkCovered, lastCheck] = await Promise.all([l.inspectionRequirement === "REQUIRED" ? inspections.coverageForListing(id) : true, l.trustLabel === "PARTNER_CHECK" ? inspections.partnerCheckFor(id) : null]);
+  const available = l.status === "LIVE" && checkCovered;
   const isSeller = ctx.user?.id === l.seller?.id;
   const buyHref = ctx.user ? `/checkout/${id}` : withNext("/sign-in", `/checkout/${id}`);
   const here = `/listings/${id}`;
@@ -66,6 +68,7 @@ export default async function ListingPage({ params, searchParams }: Props) {
       ) : (
         <Button fullWidth disabled>{isSeller ? "Your listing" : "Not available"}</Button>
       )}
+      {!checkCovered && l.status === "LIVE" ? <p className="text-sm font-semibold">Partner Check not available in your area</p> : null}
       <p className="text-sm text-steel">Your payment is held until you confirm the part is OK.</p>
       {!ctx.user ? (
         <ButtonLink href={withNext("/sign-in", here)} variant="secondary" fullWidth>Sign in to message the seller</ButtonLink>
@@ -121,7 +124,15 @@ export default async function ListingPage({ params, searchParams }: Props) {
 
         <section className="flex flex-col gap-1 border border-rule bg-surface p-3">
           <TrustBadge label={l.trustLabel} />
-          <p className="text-sm text-steel">{TRUST_TEXT[l.trustLabel].sentence}</p>
+          <p className="text-sm text-steel">
+            {lastCheck ? (
+              <>
+                Inspected by {lastCheck.garageName} on <DateText date={lastCheck.date} />. Visual and basic check.
+              </>
+            ) : (
+              TRUST_TEXT[l.trustLabel].sentence
+            )}
+          </p>
           <p className="text-sm">{partnerCheck}</p>
         </section>
 

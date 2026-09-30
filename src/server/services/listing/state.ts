@@ -8,12 +8,12 @@ import { enqueueOutbox } from "../outbox/outbox";
  * The only writer of Listing.status (PLAN.md §1.2 "State changes", §5.1).
  * Implemented: L1 submit, L2 resubmit, L15 withdraw (M4); L3 screeningStarted, L4 screeningFailed,
  * L5 screeningPassed, L7 adminReject, L8 adminRequestChanges (M5); L10 reserve, L11 release, L13 sold,
- * L14 returnedAfterDispute (M8, driven by the order service only). The material-edit rule arrives later. Each transition runs in the caller's transaction
+ * L14 returnedAfterDispute (M8, driven by the order service only); L12 inspectionFailed (M10). The material-edit rule arrives later. Each transition runs in the caller's transaction
  * with optimistic locking and writes a ListingEvent, an AuditLog row and any outbox jobs.
  */
 export type ListingEventName =
   | "submit" | "resubmit" | "withdraw" | "screeningStarted" | "screeningFailed" | "screeningPassed" | "adminReject" | "adminRequestChanges"
-  | "reserve" | "release" | "sold" | "returnedAfterDispute";
+  | "reserve" | "release" | "sold" | "returnedAfterDispute" | "inspectionFailed";
 
 const TRANSITIONS: Record<ListingEventName, { from: ListingStatus[]; to: ListingStatus; audit: string }> = {
   submit: { from: ["DRAFT"], to: "SUBMITTED", audit: "listing.submitted" }, // L1
@@ -28,6 +28,7 @@ const TRANSITIONS: Record<ListingEventName, { from: ListingStatus[]; to: Listing
   release: { from: ["RESERVED"], to: "LIVE", audit: "listing.released" }, // L11
   sold: { from: ["RESERVED"], to: "SOLD", audit: "listing.sold" }, // L13
   returnedAfterDispute: { from: ["RESERVED"], to: "WITHDRAWN", audit: "listing.returned_after_dispute" }, // L14
+  inspectionFailed: { from: ["RESERVED"], to: "CHANGES_REQUESTED", audit: "listing.inspection_failed" }, // L12 (M10)
 };
 
 export function canTransition(status: ListingStatus, event: ListingEventName): boolean {

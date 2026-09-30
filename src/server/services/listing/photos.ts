@@ -91,6 +91,26 @@ export async function measurePhoto(image: Buffer) {
   return { brightness: brightness(g.data), blur: laplacianVariance(g.data, g.width, g.height), pHash: perceptualHash(small.data) };
 }
 
+/**
+ * Checks an uploaded file (present, size, real image type) and re-encodes it: rotate() applies the EXIF
+ * orientation and the output carries no metadata, so EXIF/GPS is dropped. Shared by listing and inspection photos.
+ */
+export async function cleanPhoto(original: Uint8Array | null): Promise<{ clean: Buffer; info: OutputInfo } | { problem: string }> {
+  if (!original) return { problem: "upload missing" };
+  if (original.byteLength > MAX_PHOTO_BYTES) return { problem: "too large" };
+  if (!sniffImageType(original)) return { problem: "not a JPEG, PNG or WebP image" };
+  try {
+    const { data, info } = await sharp(original, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" })
+      .rotate()
+      .resize(MAX_EDGE_PX, MAX_EDGE_PX, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer({ resolveWithObject: true });
+    return { clean: data, info };
+  } catch (err) {
+    return { problem: `decode failed: ${(err as Error).message}` };
+  }
+}
+
 /** Step 3 (worker): idempotent. Re-running for a processed photo does nothing. */
 export async function processListingPhoto(db: Db, deps: PhotoDeps, photoId: string): Promise<"ready" | "failed" | "skipped"> {
   const photo = await db.listingPhoto.findUnique({ where: { id: photoId } });
@@ -103,22 +123,9 @@ export async function processListingPhoto(db: Db, deps: PhotoDeps, photoId: stri
   };
 
   const original = await deps.storage.get(deps.bucket, photo.incomingKey);
-  if (!original) return fail("upload missing");
-  if (original.byteLength > MAX_PHOTO_BYTES) return fail("too large");
-  if (!sniffImageType(original)) return fail("not a JPEG, PNG or WebP image");
-
-  let clean: Buffer;
-  let info: OutputInfo;
-  try {
-    // rotate() applies the EXIF orientation; output carries no metadata unless asked for, so EXIF/GPS is dropped.
-    ({ data: clean, info } = await sharp(original, { limitInputPixels: MAX_INPUT_PIXELS, failOn: "error" })
-      .rotate()
-      .resize(MAX_EDGE_PX, MAX_EDGE_PX, { fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality: 82, mozjpeg: true })
-      .toBuffer({ resolveWithObject: true }));
-  } catch (err) {
-    return fail(`decode failed: ${(err as Error).message}`);
-  }
+  const cleaned = await cleanPhoto(original);
+  if ("problem" in cleaned) return fail(cleaned.problem);
+  const { clean, info } = cleaned;
   const metrics = await measurePhoto(clean);
   const storageKey = `listings/${photo.listingId}/${photo.id}.jpg`;
   await deps.storage.put(deps.bucket, storageKey, new Uint8Array(clean), "image/jpeg");

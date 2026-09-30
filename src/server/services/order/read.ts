@@ -3,6 +3,7 @@ import type { PrismaClient } from "@/generated/prisma/client";
 import { hoursLeft, orderTimeline } from "@/lib/order-state";
 import { NotFoundError } from "../../http/errors";
 import { recordAudit } from "../audit/audit";
+import { hasCoverage, inspectionSlots } from "../inspection/inspection";
 import { buyerCancellationPreview, pickupSlots } from "./fulfilment";
 import { orderMoneyView } from "./pricing";
 
@@ -32,6 +33,11 @@ const orderSelect = {
   createdAt: true,
   listingId: true,
   listing: { select: { id: true, title: true, partName: true, category: { select: { name: true, packagingGuide: true, shippingRestriction: true } } } },
+  inspections: {
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: { id: true, status: true, reason: true, slotStart: true, slotEnd: true, outcome: true, notes: true, completedAt: true, partner: { select: { garageName: true } } },
+  },
   shipments: {
     where: { direction: "FORWARD" as const },
     orderBy: { createdAt: "desc" as const },
@@ -53,6 +59,7 @@ export async function orderForUser(db: Db, userId: string, orderId: string, now 
     title: o.listing.title ?? o.listing.partName ?? "Part",
     money: orderMoneyView(o),
     shipment: o.shipments[0] ?? null,
+    inspection: o.inspections[0] ?? null,
     timeline: orderTimeline({ state: o.state, inspection: !!o.inspectionReason, delivery: o.fulfilmentMode === "DELIVERY", events: o.events }),
     sellerHoursLeft: o.state === "AWAITING_SELLER" ? hoursLeft(o.sellerConfirmBy, now) : null,
     acceptanceHoursLeft: o.state === "ACCEPTANCE_WINDOW" ? hoursLeft(o.acceptanceEndsAt, now) : null,
@@ -80,7 +87,15 @@ export async function sellerOrder(db: Db, sellerId: string, orderId: string, now
   const o = await orderForUser(db, sellerId, orderId, now);
   if (o.role !== "seller") throw new NotFoundError("order");
   const needsSlot = o.fulfilmentMode === "DELIVERY" && (o.state === "AWAITING_SELLER" || o.state === "INSPECTION_PASSED");
-  return { ...o, slots: needsSlot ? pickupSlots(now).map((s) => ({ id: s.id, start: s.start, end: s.end })) : [] };
+  // M10: Partner Check orders pick an inspection slot at confirmation, limited to days a garage has capacity.
+  const needsCheck = o.state === "AWAITING_SELLER" && !!o.inspectionReason;
+  const listing = needsCheck ? await db.listing.findUnique({ where: { id: o.listingId }, select: { pickupPincode: true } }) : null;
+  return {
+    ...o,
+    slots: needsSlot ? pickupSlots(now).map((s) => ({ id: s.id, start: s.start, end: s.end })) : [],
+    inspectionSlots: needsCheck ? (await inspectionSlots(db, listing?.pickupPincode, now)).map((s) => ({ id: s.id, start: s.start, end: s.end })) : [],
+    inspectionCoverage: needsCheck ? await hasCoverage(db, listing?.pickupPincode) : true,
+  };
 }
 
 export async function ordersForUser(db: Db, userId: string) {

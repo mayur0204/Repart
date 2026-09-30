@@ -6,6 +6,7 @@ import type { PaymentProvider } from "../../adapters/payment/types";
 import type { ShippingProvider } from "../../adapters/shipping/types";
 import { FieldError, NotFoundError, UserError } from "../../http/errors";
 import { recordAudit } from "../audit/audit";
+import { hasCoverage } from "../inspection/inspection";
 import { transitionListing } from "../listing/state";
 import { enqueueOutbox } from "../outbox/outbox";
 import { startProviderPayment, type CheckoutSession } from "../payment/provider-payment";
@@ -48,6 +49,21 @@ const addressSnapshot = (a: { contactName: string; contactPhone: string; line1: 
   state: a.state,
   pincode: a.pincode,
 });
+
+export const PARTNER_CHECK_UNAVAILABLE = "Partner Check not available in your area";
+
+/** A-12: tell admins (at most once a day per listing) that a REQUIRED check can't be done where the part is. */
+async function alertNoCoverage(db: Db, listingId: string) {
+  const since = new Date(Date.now() - 86_400_000);
+  if (await db.auditLog.count({ where: { entityId: listingId, action: "listing.partner_check_unavailable", createdAt: { gte: since } } })) return;
+  await db.$transaction(async (tx) => {
+    await recordAudit(tx, { actor: { type: "SYSTEM", id: null }, action: "listing.partner_check_unavailable", entity: { type: "Listing", id: listingId } });
+    const admins = await tx.user.findMany({ where: { roles: { has: "ADMIN" }, status: "ACTIVE" }, select: { id: true } });
+    for (const a of admins) {
+      await enqueueOutbox(tx, { queue: "notifications", name: "send", payload: { userId: a.id, channel: "IN_APP", type: "inspection.no_garage", title: "No partner garage for a listing", body: "A listing needs a Partner Check but no partner garage serves its area, so buyers can't buy it.", link: "/admin/mechanics" } });
+    }
+  });
+}
 
 /** Server-side price for this buyer, listing, address and check choice. Throws a user-facing error when it can't be bought. */
 export async function priceListing(db: Db, deps: CheckoutDeps, buyerId: string, input: { listingId: string; addressId?: string; withCheck: boolean }): Promise<PricedListing> {
@@ -101,6 +117,10 @@ export async function priceListing(db: Db, deps: CheckoutDeps, buyerId: string, 
 
   const checkFeePaise = l.category?.optionalCheckFee ?? 0;
   const requirement = l.inspectionRequirement;
+  if (requirement === "REQUIRED" && !(await hasCoverage(db, l.pickupPincode))) {
+    await alertNoCoverage(db, l.id);
+    throw new UserError(PARTNER_CHECK_UNAVAILABLE);
+  }
   const withCheck = requirement === "REQUIRED" || (requirement === "OPTIONAL" && input.withCheck);
   const inspectionReason: InspectionReason | null = requirement === "REQUIRED" ? (l.inspectionReason ?? "TIER_C") : withCheck ? "BUYER_OPTIONAL" : null;
 

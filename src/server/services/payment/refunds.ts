@@ -22,7 +22,7 @@ import { flagMismatch } from "./mismatch";
  */
 type Db = PrismaClient;
 type Tx = Prisma.TransactionClient;
-type Actor = { type: "USER" | "ADMIN" | "SYSTEM"; id: string | null };
+type Actor = { type: "USER" | "ADMIN" | "SYSTEM" | "MECHANIC"; id: string | null };
 
 export const refundComponents = z.object({
   item: z.number().int().min(0),

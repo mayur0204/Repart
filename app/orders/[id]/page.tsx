@@ -5,6 +5,7 @@ import { BuyerBreakdown } from "@/components/checkout/money";
 import { PayForm } from "@/components/checkout/pay-form";
 import { ActionForm, FormInput } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
+import { PartnerCheckPanel } from "@/components/order/partner-check";
 import { OrderTimeline, ShipmentTracking } from "@/components/order/timeline";
 import { Badge, DateText } from "@/components/ui/display";
 import { formatPrice } from "@/lib/format";
@@ -39,7 +40,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           Waiting for the seller to confirm, by <DateText date={o.sellerConfirmBy} /> ({o.sellerHoursLeft} hours left). If they don&apos;t, you get a full refund.
         </p>
       ) : null}
-      {o.state === "INSPECTION_SCHEDULED" ? <p className="border border-rule bg-surface p-3">The seller confirmed. RePart is arranging the Partner Check before the part is sent.</p> : null}
+      {o.inspectionReason || o.inspection ? <PartnerCheckPanel inspection={o.inspection} audience="buyer" reason={o.inspectionReason} waitingForSeller={o.state === "PAID_HELD" || o.state === "AWAITING_SELLER"} /> : null}
       {o.state === "AWAITING_HANDOVER" ? (
         <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
           <h2 className="text-xl">Collect the part</h2>

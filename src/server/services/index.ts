@@ -13,6 +13,7 @@ import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
 import * as orderCheckout from "./order/checkout";
 import * as orderFulfilment from "./order/fulfilment";
+import * as inspectionService from "./inspection/inspection";
 import * as tracking from "./shipping/tracking";
 import * as orderLifecycle from "./order/lifecycle";
 import * as orderRead from "./order/read";
@@ -262,4 +263,28 @@ export const fulfilment = {
   },
   devAdvance: (orderId: string, status: (typeof tracking.DEV_TRACKING_STATUSES)[number]) =>
     tracking.devAdvanceShipment(db, adapters().shipping, shippingWebhookSecret(), orderId, status),
+};
+
+/** Partner Checks, the mechanic portal and garage admin (M10). Photos live in the private inspection bucket. */
+const inspectionDeps = (): inspectionService.InspectionDeps => ({ storage: adapters().storage, bucket: env().STORAGE_BUCKET_INSPECTION_PHOTOS, listingBucket: env().STORAGE_BUCKET_LISTING_PHOTOS, shipping: adapters().shipping });
+export const inspections = {
+  jobs: (userId: string) => inspectionService.mechanicJobs(db, userId),
+  job: (userId: string, inspectionId: string) => inspectionService.mechanicJob(db, inspectionDeps(), userId, inspectionId),
+  history: (userId: string) => inspectionService.mechanicHistory(db, userId),
+  requestPhoto: (actor: { userId: string; requestId?: string }, input: { inspectionId: string; shotType: string; size: number; type: string }) => inspectionService.requestInspectionPhoto(db, inspectionDeps(), actor, input),
+  confirmPhoto: (actor: { userId: string; requestId?: string }, photoId: string) => inspectionService.confirmInspectionPhoto(db, inspectionDeps(), actor, photoId),
+  submit: (actor: { userId: string; requestId?: string }, inspectionId: string, input: Record<string, unknown>) => inspectionService.submitInspection(db, inspectionDeps(), actor, inspectionId, input),
+  partnerCheckFor: (listingId: string) => inspectionService.partnerCheckFor(db, listingId),
+  coverageForListing: async (listingId: string) => {
+    const l = await db.listing.findUnique({ where: { id: listingId }, select: { pickupPincode: true } });
+    return inspectionService.hasCoverage(db, l?.pickupPincode);
+  },
+  expireLabels: () => inspectionService.expirePartnerCheckLabels(db),
+  // Admin
+  garages: () => inspectionService.adminGarages(db),
+  garage: (id: string) => inspectionService.adminGarage(db, id),
+  saveGarage: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.saveGarage(db, admin, input),
+  linkMechanic: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.linkMechanic(db, admin, input),
+  setStaffActive: (admin: { userId: string; requestId?: string }, staffId: string, active: boolean) => inspectionService.setStaffActive(db, admin, staffId, active),
+  reassign: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.reassignInspection(db, admin, input),
 };

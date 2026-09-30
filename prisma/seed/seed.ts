@@ -238,6 +238,12 @@ export async function seed(db: PrismaClient, now = new Date()): Promise<void> {
     },
     update: {},
   });
+  // The sample mechanic works at the sample garage (M10: the mechanic portal shows that garage's jobs).
+  await db.mechanicStaff.upsert({
+    where: { userId: "sample-user-mechanic" },
+    create: { id: "sample-staff-mechanic", userId: "sample-user-mechanic", partnerId: "sample-garage-partner", active: true },
+    update: { partnerId: "sample-garage-partner", active: true },
+  });
   await db.mechanicStaff.upsert({
     where: { userId: "sample-user-mechanic" },
     create: { id: "sample-mechanic-staff", userId: "sample-user-mechanic", partnerId: "sample-garage-partner" },

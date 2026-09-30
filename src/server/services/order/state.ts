@@ -84,6 +84,7 @@ const NOTICES: Partial<Record<OrderState, { to: "buyer" | "seller" | "both"; tit
   INSPECTION_SCHEDULED: { to: "buyer", title: "Seller confirmed", body: "The seller confirmed the part is available. RePart is arranging the Partner Check." },
   PICKUP_SCHEDULED: { to: "both", title: "Pickup booked", body: "The courier pickup is booked. Pack the part using the packaging guide before the pickup slot." },
   AWAITING_HANDOVER: { to: "both", title: "Ready for handover", body: "Agree a time and place in Messages. The buyer confirms the handover in the order page." },
+  INSPECTION_PASSED: { to: "both", title: "Partner Check passed", body: "The partner garage checked the part. See the result on the order page." },
   IN_TRANSIT: { to: "both", title: "Part picked up", body: "The courier has picked up the part and it is on its way." },
   ACCEPTANCE_WINDOW: { to: "both", title: "Part received", body: "The buyer has the part. The acceptance window for checking it has started." },
   COMPLETED: { to: "both", title: "Order completed", body: "The buyer accepted the part. The seller's payout is being released." },
@@ -141,11 +142,20 @@ export async function transitionOrder(
     const sys = { type: "SYSTEM" as const, id: null };
     if (rule.to === "COMPLETED" || rule.to === "RESOLVED_RELEASE") await transitionListing(tx, { listingId: order.listingId, event: "sold", actor: sys, requestId: input.requestId });
     else if (rule.to === "RESOLVED_REFUND") await transitionListing(tx, { listingId: order.listingId, event: "returnedAfterDispute", actor: sys, requestId: input.requestId });
-    else if (rule.to === "CANCELLED") {
+    else if (rule.to === "CANCELLED" && input.event === "inspectionFailed") {
+      // L12 (M10): a failed Partner Check sends the listing back to the seller with the mechanic's notes, never to LIVE.
+      await transitionListing(tx, { listingId: order.listingId, event: "inspectionFailed", actor: sys, requestId: input.requestId, data: { sellerMessage: (input.reason ?? "The Partner Check failed.").slice(0, 2000) } });
+    } else if (rule.to === "CANCELLED") {
       await transitionListing(tx, { listingId: order.listingId, event: "release", actor: sys, requestId: input.requestId });
       // O9: declining implies the part isn't available any more [assumption in PLAN.md §5.2].
       if (input.event === "sellerDeclined") await transitionListing(tx, { listingId: order.listingId, event: "withdraw", actor: sys, requestId: input.requestId });
     }
+  }
+
+  // A cancelled order frees its Partner Check slot and any unbooked pickup slot (M10).
+  if (rule.to === "CANCELLED") {
+    await tx.inspection.updateMany({ where: { orderId: input.orderId, status: { in: ["PENDING_SLOT", "SCHEDULED"] } }, data: { status: "CANCELLED" } });
+    await tx.shipment.updateMany({ where: { orderId: input.orderId, direction: "FORWARD", status: "QUOTED" }, data: { status: "CANCELLED" } });
   }
 
   // §7.2 step 6: release the held seller split once the sale stands (the job re-checks every rule).

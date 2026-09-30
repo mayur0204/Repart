@@ -8,6 +8,7 @@ import { recordAudit } from "../audit/audit";
 import { enqueueOutbox } from "../outbox/outbox";
 import { refundableComponents, requestRefund, type RefundComponents } from "../payment/refunds";
 import { SIZE_CM, WEIGHT_GRAMS } from "../search/public";
+import { hasCoverage, scheduleInspection } from "../inspection/inspection";
 import { getSettingsVersion } from "../settings/settings";
 import { transitionOrder } from "./state";
 
@@ -63,6 +64,7 @@ const orderSelect = {
   inspectionReason: true,
   settingsVersion: true,
   shippingFeePaise: true,
+  checkFeePaise: true,
   pickupAddress: true,
   deliveryAddress: true,
   listing: { select: { weightBand: true, dimensionBand: true, pickupPincode: true, category: { select: { shippingRestriction: true } } } },
@@ -147,12 +149,13 @@ async function bookForward(db: Db, shipping: ShippingProvider, o: LoadedOrder, s
 
 // ── seller actions ──
 
-export const confirmInput = z.object({ slot: z.string().max(40).optional() });
+export const confirmInput = z.object({ slot: z.string().max(40).optional(), inspectionSlot: z.string().max(40).optional() });
 
 /**
  * O5 / O6 / O7: the seller confirms the part is available. Delivery orders need a pickup slot and are booked
- * with the courier (O6); Partner Check orders move to INSPECTION_SCHEDULED (O5; garage assignment is M10) and
- * keep the preferred slot for later; local-pickup orders move to AWAITING_HANDOVER (O7) and the buyer–seller
+ * with the courier (O6); Partner Check orders need an inspection slot, get a garage assigned (M10) and move to
+ * INSPECTION_SCHEDULED (O5), keeping the preferred pickup slot for after the check (no garage serving the area:
+ * the order still moves on and waits for an admin); local-pickup orders move to AWAITING_HANDOVER (O7) and the buyer–seller
  * conversation (M7, masked) is opened for meeting details. Repeating a confirmation is a no-op.
  */
 export async function confirmOrder(db: Db, deps: { shipping: ShippingProvider }, actor: Actor, orderId: string, raw: unknown, now = new Date()) {
@@ -164,10 +167,15 @@ export async function confirmOrder(db: Db, deps: { shipping: ShippingProvider },
   }
   const user = { type: "USER" as const, id: actor.userId };
   if (o.inspectionReason) {
+    const pincode = o.listing.pickupPincode ?? pincodeOf(o.pickupAddress);
+    const covered = await hasCoverage(db, pincode);
+    if (covered && !input.inspectionSlot) throw new FieldError({ inspectionSlot: "Choose a slot for the Partner Check." });
+    const inspectionSlot = covered ? resolveSlot(input.inspectionSlot, now) : null;
     const slot = o.fulfilmentMode === "DELIVERY" && input.slot ? resolveSlot(input.slot, now) : null;
     await db.$transaction(async (tx) => {
       if (slot) await saveSlot(tx, o, slot);
-      await transitionOrder(tx, { orderId, event: "sellerConfirmedInspection", actor: user, requestId: actor.requestId, payload: { preferredPickupSlot: slot?.id ?? null } });
+      await scheduleInspection(tx, { ...o, checkFeePaise: o.checkFeePaise }, pincode, inspectionSlot, user, actor.requestId);
+      await transitionOrder(tx, { orderId, event: "sellerConfirmedInspection", actor: user, requestId: actor.requestId, payload: { preferredPickupSlot: slot?.id ?? null, inspectionSlot: inspectionSlot?.id ?? null } });
     });
     return { state: "INSPECTION_SCHEDULED", already: false };
   }

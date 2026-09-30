@@ -12,6 +12,7 @@ import { adminConfirmReturn, afterInspectionPassed, buyerCancelOrder, buyerCance
 import { orderForUser, sellerOrder, sellerOrders } from "../../src/server/services/order/read";
 import { receivePaymentWebhook } from "../../src/server/services/payment/payment-events";
 import { devAdvanceShipment, receiveTrackingWebhook } from "../../src/server/services/shipping/tracking";
+import { noAuditVersion, removeSettingsFixtures } from "../setup/settings-fixtures";
 import { testPrisma } from "../setup/test-db";
 
 let db: PrismaClient;
@@ -39,7 +40,7 @@ async function paidOrder(opts: { listing?: Record<string, unknown>; order?: Pris
   const listingId = await newListing(opts.listing);
   const local = opts.listing?.fulfilmentMode === "LOCAL_PICKUP";
   const { orderId } = await placeOrder(db, deps, { userId: BUYER }, { listingId, addressId: local ? undefined : "sample-addr-buyer" });
-  if (opts.order) await db.order.update({ where: { id: orderId }, data: opts.order });
+  await db.order.update({ where: { id: orderId }, data: { settingsVersion: await noAuditVersion(db), ...opts.order } }); // deterministic: no M10 audit selection
   await payOrder(db, deps, { userId: BUYER }, orderId, "http://x");
   const total = (await db.order.findUniqueOrThrow({ where: { id: orderId } })).totalPaise;
   const rawBody = JSON.stringify({ providerEventId: `evt_${randomUUID()}`, type: "PAYMENT_SUCCESS", providerType: "TEST", orderId, providerPaymentId: `pay_${randomUUID()}`, amount: total, currency: "INR" });
@@ -69,8 +70,11 @@ async function shipped() {
 beforeAll(async () => {
   db = testPrisma();
   await seed(db);
+  // M10 books a garage for Partner Check orders; give the sample garage room so these M9 flows never hit its daily limit.
+  await db.mechanicPartner.update({ where: { id: "sample-garage-partner" }, data: { capacityPerDay: 1000 } });
 });
 afterAll(async () => {
+  await removeSettingsFixtures(db);
   await db.$disconnect();
 });
 
@@ -128,19 +132,19 @@ describe("seller confirmation", () => {
   it("Partner Check: confirming moves to INSPECTION_SCHEDULED and keeps the preferred slot without booking", async () => {
     const { orderId } = await paidOrder({ order: { inspectionReason: "TIER_C" } });
     const slot = firstSlot();
-    expect((await confirmOrder(db, deps, seller, orderId, { slot })).state).toBe("INSPECTION_SCHEDULED");
+    expect((await confirmOrder(db, deps, seller, orderId, { slot, inspectionSlot: slot })).state).toBe("INSPECTION_SCHEDULED");
     expect(await forward(orderId)).toMatchObject({ status: "QUOTED", providerRef: null, pickupSlotStart: new Date(slot) });
   });
 
   it("after a passed check: a still-valid slot is booked; a stale one asks the seller for a new slot", async () => {
     const fresh = await paidOrder({ order: { inspectionReason: "TIER_C" } });
-    await confirmOrder(db, deps, seller, fresh.orderId, { slot: firstSlot() });
+    await confirmOrder(db, deps, seller, fresh.orderId, { slot: firstSlot(), inspectionSlot: firstSlot() });
     await db.order.update({ where: { id: fresh.orderId }, data: { state: "INSPECTION_PASSED" } });
     expect(await afterInspectionPassed(db, deps, fresh.orderId)).toBe("booked");
     expect(await state(fresh.orderId)).toBe("PICKUP_SCHEDULED");
 
     const stale = await paidOrder({ order: { inspectionReason: "TIER_C" } });
-    await confirmOrder(db, deps, seller, stale.orderId, { slot: firstSlot() });
+    await confirmOrder(db, deps, seller, stale.orderId, { slot: firstSlot(), inspectionSlot: firstSlot() });
     await db.order.update({ where: { id: stale.orderId }, data: { state: "INSPECTION_PASSED" } });
     const later = new Date(Date.now() + 10 * 86_400_000);
     expect(await afterInspectionPassed(db, deps, stale.orderId, later)).toBe("needs_slot");

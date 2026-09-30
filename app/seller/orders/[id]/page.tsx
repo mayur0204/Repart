@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SellerBreakdown } from "@/components/checkout/money";
 import { ActionForm, FormInput, FormSelect } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
+import { PartnerCheckPanel } from "@/components/order/partner-check";
 import { OrderTimeline, ShipmentTracking } from "@/components/order/timeline";
 import { Badge, DateText } from "@/components/ui/display";
 import { ORDER_STATE_TEXT, RESTRICTION_TEXT, SETTLEMENT_TEXT } from "@/lib/order-state";
@@ -20,9 +21,9 @@ const slotLabel = (s: { start: Date; end: Date }) => {
   return `${day}, ${t(s.start)} to ${t(s.end)}`;
 };
 
-function SlotSelect({ slots, label }: { slots: Array<{ id: string; start: Date; end: Date }>; label: string }) {
+function SlotSelect({ slots, label, name = "slot" }: { slots: Array<{ id: string; start: Date; end: Date }>; label: string; name?: string }) {
   return (
-    <FormSelect label={label} name="slot" defaultValue={slots[0]?.id}>
+    <FormSelect label={label} name={name} defaultValue={slots[0]?.id}>
       {slots.map((s) => (
         <option key={s.id} value={s.id}>{slotLabel(s)}</option>
       ))}
@@ -54,10 +55,22 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
               Confirm by <DateText date={o.sellerConfirmBy} /> ({o.sellerHoursLeft} hours left). If you don&apos;t, the order is cancelled and the buyer is refunded.
             </p>
           ) : null}
-          {o.inspectionReason ? <p className="text-sm">This part needs a Partner Check. After you confirm, RePart arranges the check with a partner garage and lets you know the appointment.</p> : null}
+          {o.inspectionReason ? (
+            <p className="text-sm">
+              {o.inspectionReason === "AUDIT" ? "This order was picked for a routine quality check (free for everyone). " : "This part needs a Partner Check. "}
+              {o.inspectionCoverage ? "Choose when a partner garage mechanic can check the part at your pickup address." : "No partner garage serves your area yet. Confirm anyway: RePart will arrange the check and tell you the appointment."}
+            </p>
+          ) : null}
           {!delivery ? <p className="text-sm">Local pickup: after you confirm, agree a time and place with the buyer in Messages.</p> : null}
           <ActionForm action={confirmOrder} submitLabel="Confirm order">
             <input type="hidden" name="orderId" value={o.id} />
+            {o.inspectionReason && o.inspectionCoverage ? (
+              o.inspectionSlots.length ? (
+                <SlotSelect slots={o.inspectionSlots} label="Partner Check slot" name="inspectionSlot" />
+              ) : (
+                <p className="text-sm text-danger">All partner garages are fully booked for the next few days. Try again tomorrow.</p>
+              )
+            ) : null}
             {delivery && o.slots.length ? <SlotSelect slots={o.slots} label={o.inspectionReason ? "Preferred pickup slot after the check" : "Pickup slot"} /> : null}
           </ActionForm>
           <details>
@@ -71,12 +84,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
         </section>
       ) : null}
 
-      {o.state === "INSPECTION_SCHEDULED" ? (
-        <section className="border border-rule bg-surface p-4">
-          <h2 className="text-xl">Partner Check</h2>
-          <p>RePart is arranging the Partner Check with a partner garage. You&apos;ll be told the appointment time. Keep the part ready.</p>
-        </section>
-      ) : null}
+      {o.inspection || o.state === "INSPECTION_SCHEDULED" ? <PartnerCheckPanel inspection={o.inspection} audience="seller" reason={o.inspectionReason} /> : null}
 
       {o.state === "INSPECTION_PASSED" && delivery ? (
         <section className="flex flex-col gap-3 border border-caution bg-surface p-4">

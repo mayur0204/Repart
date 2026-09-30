@@ -3,6 +3,7 @@ import { Prisma, type PrismaClient } from "@/generated/prisma/client";
 import type { PaymentProvider, PaymentWebhookEvent } from "../../adapters/payment/types";
 import { logger } from "../../logger";
 import { recordAudit } from "../audit/audit";
+import { selectedForAudit } from "../risk/rules";
 import { transitionOrder } from "../order/state";
 import { enqueueOutbox } from "../outbox/outbox";
 import { getSettingsVersion } from "../settings/settings";
@@ -99,7 +100,7 @@ export async function confirmPaid(
   p: { orderId: string; providerPaymentId: string; amount: number; currency: string; at: Date; source: "webhook" | "poll"; eventId: string },
 ): Promise<"paid" | "already_paid" | "flagged"> {
   return db.$transaction(async (tx) => {
-    const payment = await tx.payment.findUnique({ where: { orderId: p.orderId }, include: { order: { select: { state: true, settingsVersion: true } } } });
+    const payment = await tx.payment.findUnique({ where: { orderId: p.orderId }, include: { order: { select: { state: true, settingsVersion: true, inspectionReason: true, buyerId: true } } } });
     if (!payment) {
       await flagMismatch(tx, { orderId: null, kind: "UNKNOWN_ORDER", expected: null, actual: { orderId: p.orderId, providerPaymentId: p.providerPaymentId, amount: p.amount } });
       return "flagged";
@@ -127,6 +128,12 @@ export async function confirmPaid(
     }
     const { settings } = await getSettingsVersion(tx, payment.order.settingsVersion);
     await transitionOrder(tx, { orderId: p.orderId, event: "paymentSucceeded", actor: SYSTEM, payload: { providerPaymentId: p.providerPaymentId, source: p.source }, data: { autoReleaseAt: new Date(paidAt.getTime() + settings.orders.providerMaxHoldDays * DAY_MS) } });
+    // §6.3 audit selection (M10): only orders without a Partner Check, only after payment, deterministic per order + settings version.
+    if (!payment.order.inspectionReason && selectedForAudit(p.orderId, payment.order.settingsVersion, settings.inspections.auditPercent)) {
+      await tx.order.update({ where: { id: p.orderId }, data: { inspectionReason: "AUDIT" } }); // fee stays ₹0
+      await recordAudit(tx, { actor: { type: "SYSTEM", id: null }, action: "order.audit_selected", entity: { type: "Order", id: p.orderId }, after: { settingsVersion: payment.order.settingsVersion, auditPercent: settings.inspections.auditPercent } });
+      await enqueueOutbox(tx, { queue: "notifications", name: "send", payload: { userId: payment.order.buyerId, channel: "IN_APP", type: "order.audit_selected", title: "Routine quality check", body: "This order was picked for a routine quality check", link: `/orders/${p.orderId}` } });
+    }
     const sellerConfirmBy = new Date(Date.now() + settings.orders.sellerConfirmHours * HOUR_MS);
     await transitionOrder(tx, { orderId: p.orderId, event: "notifySeller", actor: { type: "SYSTEM", id: null }, data: { sellerConfirmBy } });
     await enqueueOutbox(tx, { queue: "orders", name: "sellerTimeout", payload: { orderId: p.orderId }, runAt: new Date(sellerConfirmBy.getTime() + 5_000) });
