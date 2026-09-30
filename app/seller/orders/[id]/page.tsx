@@ -2,15 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SellerBreakdown } from "@/components/checkout/money";
-import { ActionForm, FormInput, FormSelect } from "@/components/forms/action-form";
+import { ActionForm, FormInput, FormSelect, FormTextarea } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
 import { PartnerCheckPanel } from "@/components/order/partner-check";
 import { OrderTimeline, ShipmentTracking } from "@/components/order/timeline";
 import { Badge, DateText } from "@/components/ui/display";
+import { DISPUTE_REASON_TEXT, DISPUTE_STATUS_TEXT } from "@/lib/dispute";
 import { ORDER_STATE_TEXT, RESTRICTION_TEXT, SETTLEMENT_TEXT } from "@/lib/order-state";
 import { requireMemberPage } from "@/server/auth/current";
 import { NotFoundError } from "@/server/http/errors";
 import { fulfilment } from "@/server/services";
+import { respondToDispute } from "../../../orders/actions";
 import { bookPickup, confirmOrder, declineOrder } from "../actions";
 
 export const metadata: Metadata = { title: "Order | RePart" };
@@ -82,6 +84,32 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
             </ActionForm>
           </details>
         </section>
+      ) : null}
+
+      {o.dispute ? (
+        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+          <h2 className="text-xl">Dispute</h2>
+          <p>
+            The buyer reported a problem: {DISPUTE_REASON_TEXT[o.dispute.reason] ?? o.dispute.reason}. {DISPUTE_STATUS_TEXT[o.dispute.status] ?? o.dispute.status}.
+          </p>
+          {o.sellerCanRespond && o.disputeDeadline ? (
+            <>
+              <p className="text-sm">
+                Respond by <DateText date={o.disputeDeadline} />. After that RePart decides without your side.
+              </p>
+              <ActionForm action={respondToDispute} submitLabel="Send response">
+                <input type="hidden" name="orderId" value={o.id} />
+                <FormTextarea label="Your side of what happened" name="response" rows={4} maxLength={2000} />
+              </ActionForm>
+            </>
+          ) : null}
+          <Link href={`/orders/${o.id}/dispute`} className="text-action underline underline-offset-4">View the dispute and add photos</Link>
+        </section>
+      ) : null}
+      {o.state === "COMPLETED" ? (
+        <p className="border border-rule bg-surface p-3">
+          Order complete. <Link href={`/orders/${o.id}/review`} className="text-action underline underline-offset-4">Leave a review for the buyer</Link>
+        </p>
       ) : null}
 
       {o.inspection || o.state === "INSPECTION_SCHEDULED" ? <PartnerCheckPanel inspection={o.inspection} audience="seller" reason={o.inspectionReason} /> : null}

@@ -7,6 +7,7 @@ import { ActionForm, FormInput } from "@/components/forms/action-form";
 import { Page } from "@/components/layout/page";
 import { PartnerCheckPanel } from "@/components/order/partner-check";
 import { OrderTimeline, ShipmentTracking } from "@/components/order/timeline";
+import { ButtonLink } from "@/components/ui/button";
 import { Badge, DateText } from "@/components/ui/display";
 import { formatPrice } from "@/lib/format";
 import { ORDER_STATE_TEXT, REFUND_TEXT } from "@/lib/order-state";
@@ -14,11 +15,11 @@ import { requireMemberPage } from "@/server/auth/current";
 import { NotFoundError } from "@/server/http/errors";
 import { orders } from "@/server/services";
 import { retryPayment } from "../../checkout/actions";
-import { cancelOrder, confirmHandover } from "../actions";
+import { cancelOrder, confirmHandover, confirmReceived } from "../actions";
 
 export const metadata: Metadata = { title: "Order | RePart" };
 
-/** Buyer order page (PLAN.md §4.5): timeline, tracking, fulfilment status. Acceptance and disputes are M11. */
+/** Buyer order page (PLAN.md §4.5): timeline, tracking, fulfilment status, confirm/report with countdown, review prompt. */
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await requireMemberPage(`/orders/${id}`);
@@ -52,8 +53,29 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </section>
       ) : null}
       {o.state === "ACCEPTANCE_WINDOW" && o.acceptanceEndsAt ? (
-        <p className="border border-caution bg-surface p-3">
-          Check the part. You have until <DateText date={o.acceptanceEndsAt} /> ({o.acceptanceHoursLeft} hours left) to report a problem.
+        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+          <h2 className="text-xl">Check the part</h2>
+          <p>
+            You have until <DateText date={o.acceptanceEndsAt} /> ({o.acceptanceHoursLeft} hours left). If you do nothing, the order completes automatically and the seller is paid.
+          </p>
+          {o.acceptanceHoursLeft ? (
+            <div className="flex flex-wrap gap-3">
+              <ActionForm action={confirmReceived} submitLabel="Confirm it's OK">
+                <input type="hidden" name="orderId" value={o.id} />
+              </ActionForm>
+              <ButtonLink href={`/orders/${o.id}/report`} variant="secondary">Report a problem</ButtonLink>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      {["DISPUTED", "RESOLVED_REFUND", "RESOLVED_RELEASE"].includes(o.state) ? (
+        <p className="border border-rule bg-surface p-3">
+          <Link href={`/orders/${o.id}/dispute`} className="text-action underline underline-offset-4">See the dispute and next steps</Link>
+        </p>
+      ) : null}
+      {o.state === "COMPLETED" ? (
+        <p className="border border-rule bg-surface p-3">
+          Order complete. <Link href={`/orders/${o.id}/review`} className="text-action underline underline-offset-4">Leave a review for the seller</Link>
         </p>
       ) : null}
 

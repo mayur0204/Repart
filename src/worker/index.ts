@@ -6,7 +6,7 @@ import { env } from "@/server/env";
 import { bullmqDispatch, createQueues, createRedis } from "@/server/jobs/bullmq";
 import { QUEUES } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
-import { inspections, orders } from "@/server/services";
+import { disputes, inspections, orders } from "@/server/services";
 import { relayOutbox, SWEEP_AFTER_MS } from "@/server/services/outbox/outbox";
 import { runJob } from "./handlers";
 
@@ -58,6 +58,7 @@ async function main() {
   };
   const orderTimer = setInterval(safely("order sweep", orders.sweep), ORDER_SWEEP_INTERVAL_MS);
   const labelTimer = setInterval(safely("partner check label expiry", inspections.expireLabels), 60 * 60_000);
+  const holdTimer = setInterval(safely("hold deadline watch", disputes.holdDeadlineWatch), 60 * 60_000); // PLAN §5.3: hourly
   // The mock provider keeps its state in the web process, so reconciling against it here would only report noise.
   const reconcileTimer = env().PAYMENT_PROVIDER === "mock" ? null : setInterval(safely("reconciliation", orders.reconcile), RECONCILE_INTERVAL_MS);
   logger.info({ queues: QUEUES }, "worker started");
@@ -68,6 +69,7 @@ async function main() {
     clearInterval(sweepTimer);
     clearInterval(orderTimer);
     clearInterval(labelTimer);
+    clearInterval(holdTimer);
     if (reconcileTimer) clearInterval(reconcileTimer);
     await Promise.all(workers.map((w) => w.close()));
     await Promise.all(Object.values(queues).map((q) => q.close()));

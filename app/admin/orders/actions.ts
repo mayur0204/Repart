@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { defineAction } from "@/server/http/define-action";
-import { fulfilment, orders } from "@/server/services";
+import { disputes, fulfilment, orders } from "@/server/services";
 
 /** Admin money decisions on orders (PLAN.md §5.2 O21, O22, O24; §7.2 step 8). Amounts are validated and capped server-side. */
 const ADMIN = ["ADMIN"] as const;
@@ -28,10 +28,26 @@ export const refundCancelledOrder = defineAction({ input: decision, access: ADMI
   return { ok: true, message: "Refund queued" };
 });
 
-export const resolveOrderDispute = defineAction({ input: decision.extend({ decision: z.enum(["REFUND", "RELEASE"]) }), access: ADMIN }, async (input, ctx) => {
-  await orders.resolveDispute({ userId: ctx.user.id, requestId: ctx.requestId }, input.orderId, { decision: input.decision, reason: input.reason, ...amounts(input) });
-  revalidatePath(`/admin/orders/${input.orderId}`);
-  return { ok: true, message: input.decision === "REFUND" ? "Resolved with a refund" : "Resolved; payout release queued" };
+export const resolveOrderDispute = defineAction(
+  { input: decision.extend({ decision: z.enum(["REFUND", "RELEASE"]), returnInPerson: z.string().optional(), disputeId: z.string().max(64).optional() }), access: ADMIN },
+  async (input, ctx) => {
+    await orders.resolveDispute({ userId: ctx.user.id, requestId: ctx.requestId }, input.orderId, { decision: input.decision, reason: input.reason, returnInPerson: input.returnInPerson, ...amounts(input) });
+    let returnNote = "";
+    if (input.decision === "REFUND") {
+      // M11: book the courier return (never for NOT_RECEIVED or local pickup). A failure leaves the decision in place; retry from the dispute page.
+      const r = await disputes.bookReturn(input.orderId).catch(() => "failed" as const);
+      returnNote = r === "booked" ? " Return pickup booked." : r === "failed" ? " The return pickup couldn't be booked; retry from the dispute page." : "";
+    }
+    revalidatePath(`/admin/orders/${input.orderId}`);
+    if (input.disputeId) revalidatePath(`/admin/disputes/${input.disputeId}`);
+    return { ok: true, message: (input.decision === "REFUND" ? "Resolved with a refund." : "Resolved; payout release queued.") + returnNote };
+  },
+);
+
+export const bookDisputeReturn = defineAction({ input: z.object({ orderId, disputeId: z.string().max(64) }), access: ADMIN }, async (input) => {
+  const r = await disputes.bookReturn(input.orderId);
+  revalidatePath(`/admin/disputes/${input.disputeId}`);
+  return { ok: true, message: r === "booked" ? "Return pickup booked." : r === "exists" ? "A return is already booked." : "No courier return applies to this dispute." };
 });
 
 export const recheckPayment = defineAction({ input: z.object({ orderId }), access: ADMIN }, async (input) => {

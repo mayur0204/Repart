@@ -1,7 +1,7 @@
 import "server-only";
 import { jobSchema, type JobPayload, type QueueName } from "@/server/jobs/queues";
 import { logger } from "@/server/logger";
-import { messaging, orders, photos, publicSearch, risk } from "@/server/services";
+import { disputes, messaging, orders, photos, publicSearch, risk } from "@/server/services";
 
 export type Handler = (payload: unknown, meta: { jobId: string | undefined }) => Promise<void>;
 
@@ -45,6 +45,10 @@ export const HANDLERS: Record<QueueName, Record<string, Handler>> = {
     releaseSettlement: async (payload, meta) => {
       const r = await orders.releaseSettlement((payload as { orderId: string }).orderId);
       logger.info({ jobId: meta.jobId, result: r }, "orders.releaseSettlement handled");
+    },
+    acceptanceTimeout: async (payload, meta) => {
+      const r = await disputes.acceptanceTimeout((payload as { orderId: string }).orderId);
+      logger.info({ jobId: meta.jobId, result: r }, "orders.acceptanceTimeout handled");
     },
     processRefund: async (payload, meta) => {
       const r = await orders.processRefund((payload as { refundId: string }).refundId);

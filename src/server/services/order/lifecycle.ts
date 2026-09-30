@@ -9,6 +9,7 @@ import { enqueueOutbox } from "../outbox/outbox";
 import { confirmFromProvider } from "../payment/payment-events";
 import { refundableComponents, requestRefund, type RefundComponents } from "../payment/refunds";
 import { syncSettlement } from "../payment/settlement";
+import { acceptanceTimeout } from "./disputes";
 import { transitionOrder } from "./state";
 
 /**
@@ -46,7 +47,7 @@ export async function sellerTimeout(db: Db, orderId: string, now = new Date()): 
 
 /** Backup for missed timer jobs, settlement status sync and the auto-release deadline breach (§5.3). */
 export async function sweepOrders(db: Db, provider: PaymentProvider, now = new Date()) {
-  const result = { expired: 0, sellerTimeouts: 0, settled: 0, breached: 0, errors: 0 };
+  const result = { expired: 0, sellerTimeouts: 0, completed: 0, settled: 0, breached: 0, errors: 0 };
   const guard = async (what: string, id: string, fn: () => Promise<unknown>) => {
     try {
       return await fn();
@@ -60,6 +61,10 @@ export async function sweepOrders(db: Db, provider: PaymentProvider, now = new D
   }
   for (const o of await db.order.findMany({ where: { state: "AWAITING_SELLER", sellerConfirmBy: { lt: now } }, select: { id: true }, take: 100 })) {
     if ((await guard("sellerTimeout", o.id, () => sellerTimeout(db, o.id, now))) === "cancelled") result.sellerTimeouts++;
+  }
+  // O19 backup (M11): acceptance windows whose timer job was missed.
+  for (const o of await db.order.findMany({ where: { state: "ACCEPTANCE_WINDOW", acceptanceEndsAt: { lt: now } }, select: { id: true }, take: 100 })) {
+    if ((await guard("acceptanceTimeout", o.id, () => acceptanceTimeout(db, o.id, now))) === "completed") result.completed++;
   }
   for (const p of await db.payment.findMany({ where: { provider: provider.name, status: "SUCCESS", vendorSettlementStatus: "ELIGIBLE" }, select: { orderId: true }, take: 50 })) {
     if ((await guard("syncSettlement", p.orderId, () => syncSettlement(db, provider, p.orderId))) === "SETTLED") result.settled++;
@@ -135,7 +140,11 @@ export async function adminRefundOnly(db: Db, admin: { userId: string; requestId
   await db.$transaction((tx) => requestRefund(tx, { orderId, components, reason: input.reason, actor: { type: "ADMIN", id: admin.userId }, idempotencyKey: `refund:${orderId}:admin:${n + 1}`, requestId: admin.requestId }));
 }
 
-export const resolveDisputeInput = adminRefundInput.extend({ decision: z.enum(["REFUND", "RELEASE"]) });
+export const resolveDisputeInput = adminRefundInput.extend({
+  decision: z.enum(["REFUND", "RELEASE"]),
+  // Local pickup (M11): the admin decides whether the buyer hands the part back in person (no courier return).
+  returnInPerson: z.union([z.boolean(), z.enum(["on", "true", "false", ""])]).optional().transform((v) => v === true || v === "on" || v === "true"),
+});
 
 /** O21 / O22: an explicit admin decision on a dispute (never automatic, decision D-6). */
 export async function resolveDispute(db: Db, admin: { userId: string; requestId?: string }, orderId: string, raw: unknown) {
@@ -155,6 +164,7 @@ export async function resolveDispute(db: Db, admin: { userId: string; requestId?
       const { refundId } = await requestRefund(tx, { orderId, components, reason: input.reason, actor, idempotencyKey: `refund:${orderId}:dispute`, requestId: admin.requestId });
       const r = await tx.refund.findUniqueOrThrow({ where: { id: refundId }, select: { amountPaise: true } });
       await tx.dispute.update({ where: { id: order.dispute!.id }, data: { refundAmountPaise: r.amountPaise } });
+      if (input.returnInPerson) await recordAudit(tx, { actor, action: "dispute.return_in_person", entity: { type: "Dispute", id: order.dispute!.id }, after: { orderId }, requestId: admin.requestId });
     }
   });
 }

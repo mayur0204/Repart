@@ -33,6 +33,7 @@ const orderSelect = {
   createdAt: true,
   listingId: true,
   listing: { select: { id: true, title: true, partName: true, category: { select: { name: true, packagingGuide: true, shippingRestriction: true } } } },
+  dispute: { select: { id: true, status: true, reason: true, createdAt: true, sellerRespondedAt: true } },
   inspections: {
     orderBy: { createdAt: "desc" as const },
     take: 1,
@@ -60,6 +61,9 @@ export async function orderForUser(db: Db, userId: string, orderId: string, now 
     money: orderMoneyView(o),
     shipment: o.shipments[0] ?? null,
     inspection: o.inspections[0] ?? null,
+    // M11: the seller has 48 hours from the report to respond (never resolves anything by itself).
+    disputeDeadline: o.dispute ? new Date(o.dispute.createdAt.getTime() + 48 * 3_600_000) : null,
+    sellerCanRespond: !!o.dispute && ["OPEN", "AWAITING_SELLER", "UNDER_REVIEW"].includes(o.dispute.status) && !o.dispute.sellerRespondedAt && o.dispute.createdAt.getTime() + 48 * 3_600_000 > now.getTime(),
     timeline: orderTimeline({ state: o.state, inspection: !!o.inspectionReason, delivery: o.fulfilmentMode === "DELIVERY", events: o.events }),
     sellerHoursLeft: o.state === "AWAITING_SELLER" ? hoursLeft(o.sellerConfirmBy, now) : null,
     acceptanceHoursLeft: o.state === "ACCEPTANCE_WINDOW" ? hoursLeft(o.acceptanceEndsAt, now) : null,

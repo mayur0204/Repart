@@ -152,6 +152,11 @@ export async function transitionOrder(
     }
   }
 
+  // O19 timer (M11): entering the acceptance window schedules the automatic completion at its end.
+  if (rule.to === "ACCEPTANCE_WINDOW" && input.data?.acceptanceEndsAt instanceof Date) {
+    await enqueueOutbox(tx, { queue: "orders", name: "acceptanceTimeout", payload: { orderId: input.orderId }, runAt: new Date(input.data.acceptanceEndsAt.getTime() + 5_000) });
+  }
+
   // A cancelled order frees its Partner Check slot and any unbooked pickup slot (M10).
   if (rule.to === "CANCELLED") {
     await tx.inspection.updateMany({ where: { orderId: input.orderId, status: { in: ["PENDING_SLOT", "SCHEDULED"] } }, data: { status: "CANCELLED" } });

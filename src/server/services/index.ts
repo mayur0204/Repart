@@ -13,6 +13,7 @@ import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
 import * as orderCheckout from "./order/checkout";
 import * as orderFulfilment from "./order/fulfilment";
+import * as disputeService from "./order/disputes";
 import * as inspectionService from "./inspection/inspection";
 import * as tracking from "./shipping/tracking";
 import * as orderLifecycle from "./order/lifecycle";
@@ -288,4 +289,24 @@ export const inspections = {
   setStaffActive: (admin: { userId: string; requestId?: string }, staffId: string, active: boolean) => inspectionService.setStaffActive(db, admin, staffId, active),
   reassign: (admin: { userId: string; requestId?: string }, input: unknown) => inspectionService.reassignInspection(db, admin, input),
   reassignmentOptions: (orderId: string) => inspectionService.reassignmentOptions(db, orderId),
+};
+
+/** Acceptance, disputes, reviews and the hold-deadline watch (M11). Evidence lives in the private dispute-evidence bucket. */
+const disputeDeps = (): disputeService.DisputeDeps => ({ storage: adapters().storage, bucket: env().STORAGE_BUCKET_DISPUTE_EVIDENCE, shipping: adapters().shipping });
+export const disputes = {
+  accept: (actor: { userId: string; requestId?: string }, orderId: string) => disputeService.acceptOrder(db, actor, orderId),
+  report: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => disputeService.reportProblem(db, actor, orderId, input),
+  respond: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => disputeService.sellerRespond(db, actor, orderId, input),
+  requestEvidence: (actor: { userId: string; requestId?: string }, input: { disputeId: string; size: number; type: string }) => disputeService.requestEvidenceUpload(db, disputeDeps(), actor, input),
+  confirmEvidence: (actor: { userId: string; requestId?: string }, evidenceId: string) => disputeService.confirmEvidenceUpload(db, disputeDeps(), actor, evidenceId),
+  forUser: (userId: string, orderId: string) => disputeService.disputeForUser(db, disputeDeps(), userId, orderId),
+  adminList: () => disputeService.adminDisputes(db),
+  adminGet: (disputeId: string) => disputeService.adminDispute(db, disputeDeps(), disputeId),
+  bookReturn: (orderId: string) => disputeService.bookDisputeReturn(db, disputeDeps(), orderId),
+  reviewState: (userId: string, orderId: string) => disputeService.reviewState(db, userId, orderId),
+  review: (actor: { userId: string; requestId?: string }, orderId: string, input: unknown) => disputeService.submitReview(db, actor, orderId, input),
+  nearAutoRelease: () => disputeService.nearAutoRelease(db),
+  // Worker jobs
+  acceptanceTimeout: (orderId: string) => disputeService.acceptanceTimeout(db, orderId),
+  holdDeadlineWatch: () => disputeService.holdDeadlineWatch(db),
 };

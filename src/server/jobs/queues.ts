@@ -41,6 +41,7 @@ export const JOBS = {
     sellerTimeout: z.object({ orderId: z.string().min(1) }), // O8 at sellerConfirmBy
     releaseSettlement: z.object({ orderId: z.string().min(1) }), // §7.2 step 6 on COMPLETED / RESOLVED_RELEASE
     processRefund: z.object({ refundId: z.string().min(1) }), // send / re-check a Refund with the provider
+    acceptanceTimeout: z.object({ orderId: z.string().min(1) }), // O19 at acceptanceEndsAt (M11)
   },
 } as const satisfies Record<QueueName, Record<string, z.ZodType>>;
 
