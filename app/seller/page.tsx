@@ -19,7 +19,15 @@ export default async function SellerDashboard() {
   const statuses = ORDER.filter((s) => groups.get(s)?.length);
 
   return (
-    <Page title="Your listings" actions={<ButtonLink href="/sell">Sell a part</ButtonLink>}>
+    <Page
+      title="Your listings"
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/seller/payouts" variant="secondary">Payouts</ButtonLink>
+          <ButtonLink href="/sell">Sell a part</ButtonLink>
+        </div>
+      }
+    >
       {statuses.length === 0 ? (
         <EmptyState title="No listings yet" body="List a part in seven short steps. Your draft is saved as you go." action={<ButtonLink href="/sell">Sell a part</ButtonLink>} />
       ) : (

@@ -7,7 +7,7 @@ import pino from "pino";
  */
 export const REDACT_KEYS = [
   "password", "secret", "token", "otp", "code", "phone", "authorization", "cookie",
-  "accountNumber", "ifsc", "upi", "apiKey", "serviceRoleKey",
+  "accountNumber", "account_number", "ifsc", "upi", "vpa", "pan", "gst", "apiKey", "serviceRoleKey",
 ];
 
 export const logger = pino({

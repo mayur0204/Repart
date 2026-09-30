@@ -4,6 +4,8 @@ import { createMockNotificationProvider } from "./notification/mock";
 import type { NotificationProvider } from "./notification/types";
 import { createMockOtpProvider } from "./otp/mock";
 import type { OtpProvider } from "./otp/types";
+import { createCashfreePaymentProvider } from "./payment/cashfree";
+import { cashfreeFromEnv } from "./payment/cashfree-client";
 import { createMockPaymentProvider } from "./payment/mock";
 import type { PaymentProvider } from "./payment/types";
 import { createMockShippingProvider } from "./shipping/mock";
@@ -51,7 +53,7 @@ export function adapters(): Adapters {
   const webhookSecret = e.MOCK_WEBHOOK_SECRET ?? DEV_WEBHOOK_SECRET;
   cached = {
     otp: createMockOtpProvider(),
-    payment: createMockPaymentProvider({ webhookSecret, baseUrl: e.APP_BASE_URL }),
+    payment: e.PAYMENT_PROVIDER === "cashfree" ? createCashfreePaymentProvider(cashfreeFromEnv()) : createMockPaymentProvider({ webhookSecret, baseUrl: e.APP_BASE_URL }),
     shipping: createMockShippingProvider({ webhookSecret: e.SHIPPING_WEBHOOK_SECRET ?? webhookSecret }),
     vision: createMockVisionProvider(),
     storage: createStorage(),

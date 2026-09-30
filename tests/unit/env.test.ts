@@ -55,3 +55,18 @@ describe("server env", () => {
     expect(findExposedSecrets(process.env)).toEqual([]);
   });
 });
+
+describe("Cashfree env (M8, sandbox only)", () => {
+  const base = { DATABASE_URL: "postgresql://u:p@127.0.0.1:5432/db", SUPABASE_URL: "https://x.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "x".repeat(40), SESSION_SECRET: "s".repeat(40) };
+  it("is optional, defaults to sandbox, and needs both credentials together", () => {
+    expect(parseServerEnv(base).CASHFREE_ENV).toBe("sandbox");
+    expect(parseServerEnv({ ...base, CASHFREE_APP_ID: "test-app", CASHFREE_SECRET_KEY: "test-secret" }).CASHFREE_APP_ID).toBe("test-app");
+    expect(() => parseServerEnv({ ...base, CASHFREE_APP_ID: "test-app" })).toThrow(/set together/);
+  });
+  it("rejects anything but the sandbox, without echoing values", () => {
+    expect(() => parseServerEnv({ ...base, CASHFREE_ENV: "production" })).toThrow(/only the Cashfree sandbox/);
+  });
+  it("flags any NEXT_PUBLIC_CASHFREE_* variable", () => {
+    expect(findExposedSecrets({ NEXT_PUBLIC_CASHFREE_APP_ID: "x", NEXT_PUBLIC_CASHFREE_SECRET_KEY: "y" })).toHaveLength(2);
+  });
+});

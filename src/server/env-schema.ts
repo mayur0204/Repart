@@ -38,7 +38,11 @@ export const serverEnvSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
   OTP_PROVIDER: adapter(["mock"] as const, "mock"),
-  PAYMENT_PROVIDER: adapter(["mock"] as const, "mock"), // "cashfree" added in M8
+  PAYMENT_PROVIDER: adapter(["mock", "cashfree"] as const, "mock"),
+  // Cashfree Easy Split, TEST/SANDBOX only (decision D-9). Server-only; never logged or sent to the browser.
+  CASHFREE_APP_ID: z.string().min(1).optional(),
+  CASHFREE_SECRET_KEY: z.string().min(1).optional(),
+  CASHFREE_ENV: z.literal("sandbox", { message: "only the Cashfree sandbox is allowed" }).default("sandbox"),
   SHIPPING_PROVIDER: adapter(["mock"] as const, "mock"),
   VISION_PROVIDER: adapter(["mock"] as const, "mock"),
   NOTIFICATION_PROVIDER: adapter(["mock"] as const, "mock"),
@@ -49,7 +53,7 @@ export const serverEnvSchema = z.object({
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 /** Names that must never be exposed to the browser via NEXT_PUBLIC_. */
-export const SECRET_NAME_PATTERN = /(KEY|SECRET|TOKEN|PASSWORD|DATABASE|DIRECT_URL|SERVICE_ROLE)/i;
+export const SECRET_NAME_PATTERN = /(KEY|SECRET|TOKEN|PASSWORD|DATABASE|DIRECT_URL|SERVICE_ROLE|CASHFREE)/i;
 
 /** Parse env and return a readable error that never echoes secret values. */
 export function parseServerEnv(source: Record<string, string | undefined>): ServerEnv {
@@ -59,6 +63,12 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
       .map((issue) => `  - ${issue.path.join(".") || "(root)"}: ${issue.message}`)
       .join("\n");
     throw new Error(`Invalid environment configuration:\n${problems}`);
+  }
+  if (result.data.PAYMENT_PROVIDER === "cashfree" && !result.data.CASHFREE_APP_ID) {
+    throw new Error("Invalid environment configuration:\n  - PAYMENT_PROVIDER=cashfree needs CASHFREE_APP_ID and CASHFREE_SECRET_KEY");
+  }
+  if (!result.data.CASHFREE_APP_ID !== !result.data.CASHFREE_SECRET_KEY) {
+    throw new Error("Invalid environment configuration:\n  - CASHFREE_APP_ID and CASHFREE_SECRET_KEY must be set together");
   }
   if (result.data.NODE_ENV === "production" && result.data.PAYMENT_PROVIDER === "mock") {
     throw new Error("Invalid environment configuration:\n  - PAYMENT_PROVIDER: mock is not allowed in production");

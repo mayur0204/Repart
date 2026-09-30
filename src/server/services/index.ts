@@ -11,6 +11,7 @@ import * as listingService from "./listing/listing";
 import * as photoService from "./listing/photos";
 import * as messagingService from "./messaging/messaging";
 import * as notificationService from "./notification/notification";
+import * as vendorOnboarding from "./payment/vendor-onboarding";
 import * as riskPipeline from "./risk/pipeline";
 import * as publicService from "./search/public";
 import * as searchService from "./search/search";
@@ -193,4 +194,11 @@ export const messaging = {
   markRead: (userId: string, conversationId: string) => messagingService.markRead(db, userId, conversationId),
   report: (userId: string, input: unknown) => messagingService.reportMessage(db, userId, input),
   deliverNotification: (payload: Parameters<typeof notificationService.deliverNotification>[2]) => notificationService.deliverNotification(db, adapters().notification, payload),
+};
+
+/** Seller payout onboarding as a Cashfree Easy Split vendor (M8). Provider chosen by PAYMENT_PROVIDER. */
+export const payouts = {
+  summary: (userId: string) => vendorOnboarding.getPayoutSummary(db, userId),
+  submit: (actor: { userId: string; requestId?: string }, input: unknown) => vendorOnboarding.submitPayoutOnboarding(db, adapters().payment, actor, input),
+  sync: (userId: string) => vendorOnboarding.syncPayoutStatus(db, adapters().payment, userId),
 };

@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { verifySignature } from "../signing";
-import type { PaymentProvider, PaymentWebhookEvent, ProviderOrder, RefundResult, Settlement, VendorStatus } from "./types";
+import type { PaymentProvider, PaymentWebhookEvent, ProviderOrder, RefundResult, Settlement, VendorState } from "./types";
 
 export const MOCK_SIGNATURE_HEADER = "x-mock-signature";
 
@@ -12,19 +12,22 @@ type MockOrder = ProviderOrder & { vendorId: string; vendorShare: number; eligib
  * checkout page and signed fake webhooks, keeping this interface unchanged.
  */
 export function createMockPaymentProvider(opts: { webhookSecret: string; baseUrl: string }): PaymentProvider {
-  const vendors = new Map<string, VendorStatus>();
+  const vendors = new Map<string, VendorState>();
   const orders = new Map<string, MockOrder>();
   const refunds = new Map<string, RefundResult>();
 
   return {
     name: "mock",
-    async createVendor() {
-      const vendorId = `mock_vendor_${randomUUID()}`;
-      vendors.set(vendorId, "ACTIVE");
-      return { vendorId, status: "ACTIVE" };
+    // Plan §7.3: the mock onboards instantly as ACTIVE; creating the same vendor id again returns it.
+    async createVendor(input) {
+      const existing = vendors.get(input.vendorId);
+      if (existing) return existing;
+      const state: VendorState = { vendorId: input.vendorId, status: "ACTIVE", providerStatus: "ACTIVE", remarks: null };
+      vendors.set(input.vendorId, state);
+      return state;
     },
     async getVendorStatus(vendorId) {
-      return vendors.get(vendorId) ?? "PENDING";
+      return vendors.get(vendorId) ?? null;
     },
     async createOrder(input) {
       const existing = orders.get(input.orderId);
@@ -33,6 +36,7 @@ export function createMockPaymentProvider(opts: { webhookSecret: string; baseUrl
         providerOrderId: `mock_order_${input.orderId}`,
         status: "CREATED",
         checkoutUrl: `${opts.baseUrl}/dev/mock-checkout/${input.orderId}`,
+        paymentSessionId: null,
         amount: input.amount,
         vendorId: input.vendorId,
         vendorShare: input.vendorShare,

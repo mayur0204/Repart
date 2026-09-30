@@ -209,10 +209,18 @@ enum RefundStatus {
 
 enum PayoutOnboardingStatus {
   NOT_STARTED
-  PENDING
-  ACTIVE
+  PENDING // provider is validating (bank / beneficiary / KYC)
+  ACTIVE // the only payout-eligible state
   ACTION_REQUIRED
   REJECTED
+  SUBMITTED // sent to the provider, outcome not yet confirmed (e.g. timeout); retried with the same idempotency key
+  ON_HOLD
+  BLOCKED
+}
+
+enum PayoutMethod {
+  BANK
+  UPI
 }
 
 enum ShipmentDirection {
@@ -412,9 +420,15 @@ model PayoutAccount {
   status           PayoutOnboardingStatus @default(NOT_STARTED)
   statusReason     String?
   statusCheckedAt  DateTime?
+  // M8 Easy Split: raw provider status (e.g. IN_KYC_REVIEW), method chosen, settlement schedule sent,
+  // and the UUID reused for every retry of the vendor-creation request.
+  providerStatus           String?
+  payoutMethod             PayoutMethod?
+  settlementScheduleOption Int?
+  vendorIdempotencyKey     String?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
-  // No bank details, ever.
+  // No bank, UPI or KYC details, ever: they go straight to the provider.
 }
 
 // ───────────────────────────── Vehicle catalogue ─────────────────────────────
