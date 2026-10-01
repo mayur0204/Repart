@@ -65,7 +65,7 @@ export default async function InterchangeAdminPage() {
         )}
       </section>
 
-      <section className="flex max-w-2xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-2xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Add an approved link</h2>
         <ActionForm action={createLink} submitLabel="Add link">
           <div className="grid gap-4 sm:grid-cols-2">

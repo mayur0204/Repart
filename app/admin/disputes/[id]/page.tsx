@@ -32,7 +32,7 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
   return (
     <Page title={o.listing.title ?? o.listing.partName ?? "Dispute"} intro={`Order ${o.id}`} actions={<Badge tone={d.open ? "caution" : "neutral"}>{DISPUTE_STATUS_TEXT[d.status] ?? d.status}</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">The problem</h2>
           <p className="font-semibold">{DISPUTE_REASON_TEXT[d.reason] ?? d.reason}</p>
           <p>{d.description}</p>
@@ -43,7 +43,7 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
           {d.sellerResponse ? <p>{d.sellerResponse}</p> : <p className="text-sm text-steel">No response yet. Due <DateText date={d.sellerDeadline} />.</p>}
           <p className="text-sm text-steel">Seller {o.seller.name ?? "unnamed"}</p>
         </section>
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
           <h2 className="text-xl">Order and money</h2>
           <p>
             {ORDER_STATE_TEXT[o.state] ?? o.state}. <Link href={`/admin/orders/${o.id}`} className="text-action underline underline-offset-4">Order details</Link>
@@ -64,14 +64,14 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
         </section>
       </div>
 
-      <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Photos</h2>
         {d.evidence.length ? (
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {d.evidence.map((e) => (
               <li key={e.id} className="flex flex-col gap-1">
                 {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party.toLowerCase()} evidence`} className="aspect-square w-full border border-rule object-cover" />
+                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party.toLowerCase()} evidence`} className="aspect-square w-full rounded-lg border border-rule object-cover" />
                 <span className="text-sm text-steel">{e.party === "BUYER" ? "Buyer" : e.party === "SELLER" ? "Seller" : "Admin"}</span>
               </li>
             ))}
@@ -82,7 +82,7 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
       </section>
 
       {d.open && o.state === "DISPUTED" ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Decide</h2>
           <ActionForm action={resolveOrderDispute} submitLabel="Record decision">
             <input type="hidden" name="orderId" value={o.id} />
@@ -113,7 +113,7 @@ export default async function AdminDisputePage({ params }: { params: Promise<{ i
         </InlineAction>
       ) : null}
 
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
         <h2 className="text-xl">History</h2>
         <ul className="flex flex-col">
           {d.audit.map((a, i) => (

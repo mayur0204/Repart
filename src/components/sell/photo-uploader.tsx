@@ -124,7 +124,7 @@ export function PhotoUploader({
   const extras = photos.filter((p) => !shots.some((s) => s.shotType === p.shotType) || p.shotType === "extra");
 
   const picker = (shotType: string, label: string, replaces?: string) => (
-    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
+    <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
       <input type="file" accept={PHOTO_TYPES.join(",")} className="sr-only" disabled={busy !== null} onChange={(e) => void choose(e.target.files?.[0], shotType, replaces)} />
       <Icon name="plus" size="sm" />
       {busy === shotType ? "Uploading" : label}
@@ -133,7 +133,7 @@ export function PhotoUploader({
 
   const thumb = (p: Photo, index: number) => (
     <div className="flex flex-col gap-2">
-      <div className="flex aspect-square w-full items-center justify-center border border-rule bg-page">
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-rule bg-page">
         {p.status === "ready" && p.url ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
           <img loading="lazy" decoding="async" src={p.url} alt={`Photo ${index + 1}`} className="h-full w-full object-cover" />
@@ -160,7 +160,7 @@ export function PhotoUploader({
           const p = slotFor(s.shotType);
           const index = p ? photos.indexOf(p) : -1;
           return (
-            <li key={s.shotType} className="flex flex-col gap-2 border border-rule bg-surface p-3">
+            <li key={s.shotType} className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{s.label}</span>
                 {s.required ? <Badge tone="neutral" icon={false}>Required</Badge> : null}
@@ -168,7 +168,7 @@ export function PhotoUploader({
               <p className="text-sm text-steel">{s.instructions}</p>
               {p ? thumb(p, index) : null}
               {warnings[s.shotType]?.length ? (
-                <div role="alert" className="flex flex-col gap-2 border border-caution bg-caution-tint p-2 text-sm text-caution">
+                <div role="alert" className="flex flex-col gap-2 rounded-lg border border-caution bg-caution-tint p-2 text-sm text-caution">
                   {warnings[s.shotType]!.map((w) => <p key={w}>{w}</p>)}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="secondary" onClick={() => { const q = pending.current; setWarnings((w) => ({ ...w, [s.shotType]: [] })); if (q) void upload(q.file, q.shotType, q.replaces); }}>Use it anyway</Button>
@@ -188,7 +188,7 @@ export function PhotoUploader({
           </ul>
         ) : null}
         {warnings.extra?.length ? (
-          <div role="alert" className="flex flex-col gap-2 border border-caution bg-caution-tint p-2 text-sm text-caution">
+          <div role="alert" className="flex flex-col gap-2 rounded-lg border border-caution bg-caution-tint p-2 text-sm text-caution">
             {warnings.extra.map((w) => <p key={w}>{w}</p>)}
             <Button variant="secondary" onClick={() => { const q = pending.current; setWarnings((w) => ({ ...w, extra: [] })); if (q) void upload(q.file, "extra"); }}>Use it anyway</Button>
           </div>

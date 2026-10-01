@@ -5,8 +5,9 @@ const rulesHit = (file: string, src: string) => checkSource(file, src).map((v) =
 
 describe("design rules: bad fixtures fail", () => {
   it.each([
-    ['<div className="rounded-lg p-4" />', "no-rounded"],
-    ['<img className="md:rounded-full" />', "no-rounded"],
+    ['<div className="rounded-xl p-4" />', "no-rounded"],
+    ['<img className="md:rounded-[12px]" />', "no-rounded"],
+    ['<div className="rounded-3xl" />', "no-rounded"],
     ['<button className="rounded" />', "no-rounded"],
     ["<div style={{ borderRadius: 8 }} />", "no-radius-style"],
     ['<div className="shadow-md" />', "no-shadow"],
@@ -26,7 +27,7 @@ describe("design rules: bad fixtures fail", () => {
 
   it.each([
     [".x { border-radius: 4px; }", "no-radius-css"],
-    [":root { --radius-lg: 0.5rem; }", "no-radius-token"],
+    [":root { --radius-xl: 0.5rem; }", "no-radius-token"],
     [".x { background: linear-gradient(red, blue); }", "no-gradient-css"],
     [".x { text-transform: uppercase; }", "no-uppercase-css"],
     [".x { font-family: monospace; }", "no-mono-css"],
@@ -39,7 +40,9 @@ describe("design rules: bad fixtures fail", () => {
 
 describe("design rules: allowed patterns pass", () => {
   it.each([
-    '<div className="border border-rule bg-surface p-4" />',
+    '<div className="rounded-lg border border-rule bg-surface p-4" />',
+    '<img className="rounded-md lg:rounded-none lg:rounded-l-lg" />',
+    '<span className="rounded-full rounded-t-sm" />',
     '<div className="shadow-float" />',
     '<span className="part-no">SAMPLE-BRK-0001</span>',
     "<p>We deliver from Sample City to your pincode.</p>",
@@ -49,8 +52,8 @@ describe("design rules: allowed patterns pass", () => {
     expect(checkSource("fixture.tsx", src)).toEqual([]);
   });
 
-  it("allows zero radius and letter-spacing inside part-no", () => {
-    const css = `*{border-radius:0 !important;} :root{--radius-lg:0;--radius-*:initial;} @utility part-no { letter-spacing: 0.04em; }`;
+  it("allows the radius tokens, zero radius and letter-spacing inside part-no", () => {
+    const css = `*{border-radius:0 !important;} :root{--radius-*:initial;--radius-md:0.5rem;--radius-lg:1rem;--radius-full:9999px;} @utility part-no { letter-spacing: 0.04em; }`;
     expect(checkSource("fixture.css", css)).toEqual([]);
   });
 });

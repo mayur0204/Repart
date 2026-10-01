@@ -39,7 +39,7 @@ function OverlayBody({ title, onClose, children, footer }: Omit<OverlayProps, "o
     <>
       <div className="flex items-start justify-between gap-4 border-b border-rule p-4">
         <h2 className="text-xl">{title}</h2>
-        <button type="button" onClick={onClose} className="-m-2 flex size-11 items-center justify-center text-steel hover:text-ink">
+        <button type="button" onClick={onClose} className="-m-2 flex size-11 items-center justify-center rounded-full text-steel hover:bg-page hover:text-ink">
           <Icon name="close" label="Close" />
         </button>
       </div>
@@ -58,7 +58,7 @@ export function Dialog(props: OverlayProps) {
       ref={ref}
       data-layer="floating"
       aria-label={props.title}
-      className={cn("m-auto w-[calc(100%-2rem)] max-w-lg border border-rule bg-surface p-0 text-ink shadow-float", backdrop)}
+      className={cn("m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg border border-rule bg-surface p-0 text-ink shadow-float", backdrop)}
     >
       {props.open ? <OverlayBody {...props} /> : null}
     </dialog>
@@ -74,8 +74,8 @@ export function Sheet(props: OverlayProps) {
       data-layer="floating"
       aria-label={props.title}
       className={cn(
-        "mt-auto mb-0 max-h-[85dvh] w-full max-w-none border-t border-rule bg-surface p-0 text-ink shadow-float",
-        "lg:my-0 lg:mr-0 lg:ml-auto lg:h-dvh lg:max-h-none lg:w-[28rem] lg:border-t-0 lg:border-l",
+        "mt-auto mb-0 max-h-[85dvh] w-full max-w-none rounded-t-lg border-t border-rule bg-surface p-0 text-ink shadow-float",
+        "lg:my-0 lg:mr-0 lg:ml-auto lg:h-dvh lg:max-h-none lg:w-[28rem] lg:rounded-none lg:rounded-l-lg lg:border-t-0 lg:border-l",
         backdrop,
       )}
     >

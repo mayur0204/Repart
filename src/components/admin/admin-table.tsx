@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 /** Plain bordered table for admin lists. Scrolls horizontally inside its own box on small screens. */
 export function AdminTable({ head, children, empty }: { head: string[]; children: ReactNode; empty?: ReactNode }) {
   return (
-    <div className="overflow-x-auto border border-rule bg-surface">
+    <div className="overflow-x-auto rounded-lg border border-rule bg-surface">
       <table className="w-full min-w-[40rem] border-collapse text-left">
         <thead className="bg-page">
           <tr>

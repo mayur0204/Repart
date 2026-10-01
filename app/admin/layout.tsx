@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { getCurrentUser } from "@/server/auth/current";
 import { disputes } from "@/server/services";
 
@@ -32,17 +33,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const critical = user?.roles.includes("ADMIN") ? (await disputes.nearAutoRelease()).criticalDisputes : 0;
   return (
     <div className="flex flex-col">
-      <nav aria-label="Admin" className="border-b border-rule bg-surface">
-        <ul className="mx-auto flex max-w-(--container-page) flex-wrap gap-x-6 px-4 lg:px-8">
-          {NAV.map((n) => (
-            <li key={n.href}>
-              <Link href={n.href} className="inline-flex min-h-11 items-center text-action underline-offset-4 hover:underline">
-                {n.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <AdminNav items={NAV} />
       {critical ? (
         <p role="alert" className="border-b border-danger bg-danger-tint px-4 py-3 text-center font-semibold text-danger">
           {critical} {critical === 1 ? "dispute is" : "disputes are"} within 24 hours of the automatic payout release.{" "}

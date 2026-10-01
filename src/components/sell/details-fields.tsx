@@ -29,7 +29,7 @@ export function DetailsFields({ initial, min, max }: { initial: { km: string; re
         }
       />
       {found.length ? (
-        <p role="alert" className="flex items-start gap-2 border border-caution bg-caution-tint p-3 text-caution">
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-caution bg-caution-tint p-3 text-caution">
           <Icon name="alert" className="mt-0.5 shrink-0" />
           It looks like you&apos;ve typed a {found.join(" and ")}. Remove it: buyers contact you through RePart messages, which keeps both of you protected.
         </p>

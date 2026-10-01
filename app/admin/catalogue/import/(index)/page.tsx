@@ -23,7 +23,7 @@ export default async function ImportPage() {
       intro="Upload a file to check it first. Nothing changes until you review the report and select Apply import. Rows are added or updated, never deleted."
     >
       <div className="grid gap-6 lg:grid-cols-12">
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4 lg:col-span-5">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4 lg:col-span-5">
           <h2 className="text-xl">Check a file</h2>
           <ActionForm action={uploadImport} submitLabel="Upload and check">
             <FormSelect label="The file contains" name="kind" defaultValue="">
@@ -32,7 +32,7 @@ export default async function ImportPage() {
             </FormSelect>
             <div className="flex flex-col gap-1">
               <label htmlFor="csv-file" className="text-sm font-semibold">CSV file</label>
-              <input id="csv-file" name="file" type="file" accept=".csv,text/csv" className="min-h-11 border border-rule bg-surface p-2" />
+              <input id="csv-file" name="file" type="file" accept=".csv,text/csv" className="min-h-11 rounded-md border border-rule bg-surface p-2" />
               <p className="text-sm text-steel">UTF-8, first row is the header, up to {MAX_IMPORT_ROWS.toLocaleString("en-IN")} rows and 1 MB.</p>
             </div>
           </ActionForm>
@@ -40,7 +40,7 @@ export default async function ImportPage() {
         </section>
         <section className="flex flex-col gap-3 lg:col-span-7">
           <h2 className="text-xl">Column formats</h2>
-          <dl className="flex flex-col border border-rule bg-surface">
+          <dl className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
             {Object.entries(IMPORT_COLUMNS).map(([kind, spec]) => (
               <div key={kind} className="border-b border-rule p-3 last:border-b-0">
                 <dt className="font-semibold">{KIND_LABELS[kind as keyof typeof KIND_LABELS]}</dt>

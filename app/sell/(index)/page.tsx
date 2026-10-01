@@ -19,7 +19,7 @@ export default async function SellPage() {
       {drafts.length ? (
         <section className="flex flex-col gap-3">
           <h2 className="text-xl">Continue a draft</h2>
-          <ul className="flex flex-col border border-rule bg-surface">
+          <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
             {drafts.map((d) => {
               const step = LISTING_STEPS[Math.min(d.wizardStep, 7) - 1]!;
               return (

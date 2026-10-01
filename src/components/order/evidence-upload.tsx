@@ -43,7 +43,7 @@ export function EvidenceUpload({ disputeId, remaining, actions }: { disputeId: s
 
   if (remaining <= 0) return <p className="text-sm text-steel">You&apos;ve added the maximum of 5 photos.</p>;
   return (
-    <label className="inline-flex min-h-11 w-fit cursor-pointer items-center gap-2 border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
+    <label className="inline-flex min-h-11 w-fit cursor-pointer items-center gap-2 rounded-md border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
       <input type="file" accept={PHOTO_TYPES.join(",")} className="sr-only" disabled={busy} onChange={(e) => void upload(e.target.files?.[0])} />
       <Icon name="plus" size="sm" />
       {busy ? "Uploading" : `Add a photo (${remaining} left)`}

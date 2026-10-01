@@ -19,7 +19,7 @@ export default async function ModelsPage({ searchParams }: { searchParams: Promi
 
   return (
     <Page title="Models">
-      <section className="flex max-w-xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">{editing ? `Edit ${editing.make.name} ${editing.name}` : "Add a model"}</h2>
         <ActionForm
           key={editing?.id ?? "new"}

@@ -17,7 +17,7 @@ export default async function ExportPage() {
         <a href="/api/admin/export/training.csv" download className={buttonClasses("primary")}>Download CSV</a>
         <a href="/api/admin/export/training.csv?includeSample=true" download className={buttonClasses("secondary")}>Download including sample data</a>
       </div>
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Columns</h2>
         <p className="text-sm text-steel">Fixed order. Photo fields list one value per photo, separated by a vertical bar, in the listing&apos;s photo order. Empty cells mean the value doesn&apos;t exist.</p>
         <ol className="list-decimal pl-6 text-sm">

@@ -28,7 +28,7 @@ const vehicleName = (v: VehicleRow["variant"]) => `${v.model.make.name} ${v.mode
 function VehicleList({ rows, extra }: { rows: VehicleRow[]; extra?: (r: VehicleRow) => React.ReactNode }) {
   const unique = [...new Map(rows.map((r) => [r.variant.id + r.via.display, r])).values()].sort((a, b) => vehicleName(a.variant).localeCompare(vehicleName(b.variant)));
   return (
-    <ul className="flex flex-col border border-rule bg-surface">
+    <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
       {unique.map((r) => (
         <li key={r.variant.id + r.via.display} className="flex flex-col gap-0.5 border-b border-rule p-3 last:border-b-0">
           <span className="font-semibold">{vehicleName(r.variant)}</span>
@@ -65,7 +65,7 @@ export default async function PartNumberPage({ params }: Params) {
       <p className="part-no text-2xl">{part.display}</p>
 
       {!data.isCurrent && data.current.length ? (
-        <p className="flex items-start gap-2 border border-caution bg-caution-tint p-3 text-caution">
+        <p className="flex items-start gap-2 rounded-lg border border-caution bg-caution-tint p-3 text-caution">
           <Icon name="alert" className="mt-0.5 shrink-0" />
           <span>
             This number has been replaced by{" "}
@@ -86,7 +86,7 @@ export default async function PartNumberPage({ params }: Params) {
           {data.equivalents.length === 0 && data.modifications.length === 0 ? (
             <EmptyState title="No known equivalents" body="If you know a number that is the same part, suggest it below." />
           ) : (
-            <ul className="flex flex-col border border-rule bg-surface">
+            <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
               {data.equivalents.map((m) => (
                 <li key={m.partNumberId} className="flex flex-col gap-1 border-b border-rule p-3 last:border-b-0">
                   <Link href={partNumberPath(m.part)} className="text-action underline-offset-4 hover:underline">
@@ -136,7 +136,7 @@ export default async function PartNumberPage({ params }: Params) {
         </section>
       </div>
 
-      <section className="flex max-w-2xl flex-col gap-3 border border-rule bg-surface p-4" aria-labelledby="suggest-heading">
+      <section className="flex max-w-2xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4" aria-labelledby="suggest-heading">
         <h2 id="suggest-heading" className="text-xl">Suggest an equivalent part number</h2>
         <p className="text-steel">Our team checks every suggestion before it affects fit results.</p>
         {user ? (

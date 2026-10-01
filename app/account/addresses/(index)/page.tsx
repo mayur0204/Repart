@@ -28,7 +28,7 @@ export default async function AddressesPage() {
           ) : (
             <ul className="flex flex-col gap-3">
               {list.map((a) => (
-                <li key={a.id} className="flex flex-col gap-2 border border-rule bg-surface p-4">
+                <li key={a.id} className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">{a.label ?? a.contactName}</span>
                     {a.isDefault ? <Badge tone="neutral" icon={false}>Default</Badge> : null}
@@ -58,7 +58,7 @@ export default async function AddressesPage() {
             </ul>
           )}
         </section>
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4 lg:col-span-7" aria-labelledby="add-heading">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4 lg:col-span-7" aria-labelledby="add-heading">
           <h2 id="add-heading" className="text-xl">
             Add an address
           </h2>

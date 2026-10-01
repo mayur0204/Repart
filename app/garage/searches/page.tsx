@@ -17,7 +17,7 @@ export default async function SavedSearchesPage() {
   return (
     <Page title="Saved searches" intro="With alerts on, we tell you in RePart when a new part matches.">
       {searches.length ? (
-        <ul className="flex flex-col border border-rule bg-surface">
+        <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
           {searches.map((s) => {
             const params = new URLSearchParams(Object.entries(s.query as Record<string, string | number>).map(([k, v]) => [k, String(v)]));
             return (

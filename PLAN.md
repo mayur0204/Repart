@@ -1455,6 +1455,8 @@ The platform keeps its fee only on the part of the sale that stands, so the fee 
 ## 8. Design system implementation
 
 ### 8.1 Tailwind theme tokens
+> **Superseded (Stitch redesign):** colours, fonts (Plus Jakarta Sans + Inter) and radius tokens (sm/md/lg/full) now follow the Stitch "RePart Design System". `app/globals.css` and REPART_BRIEF.md §10 are the current source; the snippet below is the original M1 plan.
+
 The current Tailwind major version uses CSS-first config (`@theme` in `globals.css`). I will confirm the current syntax at M1.
 
 ```css

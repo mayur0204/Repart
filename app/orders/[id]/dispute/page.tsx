@@ -35,7 +35,7 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
 
   return (
     <Page title="Dispute" intro={d.title} actions={<Badge tone={d.open ? "caution" : "neutral"}>{DISPUTE_STATUS_TEXT[d.status] ?? d.status}</Badge>}>
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">What happens next</h2>
         <p>{next}</p>
         {d.open && !d.sellerRespondedAt ? (
@@ -45,7 +45,7 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
         ) : null}
       </section>
 
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">The problem</h2>
         <p className="font-semibold">{DISPUTE_REASON_TEXT[d.reason] ?? d.reason}</p>
         <p>{d.description}</p>
@@ -55,12 +55,12 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
       </section>
 
       {d.sellerResponse ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Seller&apos;s response</h2>
           <p>{d.sellerResponse}</p>
         </section>
       ) : d.role === "seller" && d.sellerCanRespond ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Your response</h2>
           <ActionForm action={respondToDispute} submitLabel="Send response">
             <input type="hidden" name="orderId" value={d.orderId} />
@@ -69,14 +69,14 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
         </section>
       ) : null}
 
-      <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Photos</h2>
         {d.evidence.length ? (
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {d.evidence.map((e) => (
               <li key={e.id} className="flex flex-col gap-1">
                 {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party === "BUYER" ? "Buyer" : "Seller"} photo`} className="aspect-square w-full border border-rule object-cover" />
+                <img loading="lazy" decoding="async" src={e.url} alt={`${e.party === "BUYER" ? "Buyer" : "Seller"} photo`} className="aspect-square w-full rounded-lg border border-rule object-cover" />
                 <span className="text-sm text-steel">{e.party === "BUYER" ? "Buyer" : "Seller"}</span>
               </li>
             ))}
@@ -88,7 +88,7 @@ export default async function DisputePage({ params }: { params: Promise<{ id: st
       </section>
 
       {!d.open ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Decision</h2>
           {d.resolutionNote ? <p>{d.resolutionNote}</p> : null}
           {d.resolvedAt ? (

@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             data-layer="floating"
             className={cn(
-              "pointer-events-auto flex w-full max-w-md items-center gap-3 border border-l-4 bg-surface p-3 text-ink shadow-float",
+              "pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-lg border border-l-4 bg-surface p-3 text-ink shadow-float",
               TONE[t.tone].className,
             )}
           >

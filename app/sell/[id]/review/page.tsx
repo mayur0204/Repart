@@ -26,7 +26,7 @@ export default async function ReviewStep({ params }: { params: Promise<{ id: str
   return (
     <WizardFrame listingId={id} step="review" reached={reached} incomplete={incomplete}>
       {problems.length ? (
-        <section role="alert" className="flex flex-col gap-2 border border-danger bg-danger-tint p-4">
+        <section role="alert" className="flex flex-col gap-2 rounded-lg border border-danger bg-danger-tint p-4">
           <h2 className="text-lg text-danger">Finish these before submitting</h2>
           <ul className="flex flex-col gap-2">
             {problems.map((s) => (
@@ -40,7 +40,7 @@ export default async function ReviewStep({ params }: { params: Promise<{ id: str
       ) : null}
 
       <p className="text-steel">This is how buyers will see your listing.</p>
-      <article className="grid gap-6 border border-rule bg-surface p-4 lg:grid-cols-12">
+      <article className="grid gap-6 rounded-lg border border-rule bg-surface p-4 lg:grid-cols-12">
         <div className="grid grid-cols-3 gap-2 lg:col-span-7">
           {ready.length ? (
             ready.map((p, i) => (
@@ -55,7 +55,7 @@ export default async function ReviewStep({ params }: { params: Promise<{ id: str
           <h2 className="text-2xl">{l.partName ?? "Untitled part"}</h2>
           {l.pricePaise ? <Price paise={l.pricePaise} size="lg" /> : null}
           {sellerBike ? (
-            <p className="flex items-start gap-2 border border-caution bg-caution-tint p-3 text-caution">
+            <p className="flex items-start gap-2 rounded-lg border border-caution bg-caution-tint p-3 text-caution">
               <Icon name="alert" className="mt-0.5 shrink-0" />
               Seller says this fits the {name(sellerBike.variant)}. Not confirmed by part number.
             </p>

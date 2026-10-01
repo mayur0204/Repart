@@ -31,7 +31,7 @@ export default async function PrivacySettingsPage() {
         <h2 id="consents-heading" className="text-xl">
           Consents
         </h2>
-        <ul className="flex flex-col border border-rule bg-surface">
+        <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
           {statuses.map((s) => (
             <li key={s.purpose} className="flex flex-col gap-2 border-b border-rule p-4 last:border-b-0 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex flex-col gap-1">
@@ -61,7 +61,7 @@ export default async function PrivacySettingsPage() {
         </ul>
       </section>
 
-      <section aria-labelledby="data-heading" className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section aria-labelledby="data-heading" className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 id="data-heading" className="text-xl">
           Your data
         </h2>

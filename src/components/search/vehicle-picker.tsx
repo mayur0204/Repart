@@ -33,10 +33,12 @@ export function VehiclePicker({
   const variants = models.find((m) => m.id === modelId)?.variants ?? [];
   const variant = variants.find((v) => v.id === variantId);
   const years = variant ? Array.from({ length: (variant.yearTo ?? new Date().getFullYear()) - variant.yearFrom + 1 }, (_, i) => (variant.yearTo ?? new Date().getFullYear()) - i) : [];
-  const select = "min-h-11 w-full border border-rule bg-surface px-3 disabled:bg-page disabled:text-steel";
+  const select = "min-h-11 w-full rounded-md border border-rule bg-surface px-3 disabled:bg-page disabled:text-steel";
 
   return (
-    <form method="get" action={action} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-end">
+    // Laid out by the picker's own width (home finder card vs. the narrow fit panel), not the viewport.
+    <div className="@container">
+    <form method="get" action={action} className="grid gap-3 @sm:grid-cols-2 @2xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] @2xl:items-end">
       {Object.entries(keep).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
       <label className="flex flex-col gap-1 text-sm font-semibold">
         Make
@@ -70,5 +72,6 @@ export function VehiclePicker({
         {submitLabel}
       </button>
     </form>
+    </div>
   );
 }

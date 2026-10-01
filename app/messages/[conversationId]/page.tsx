@@ -27,7 +27,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-6 lg:px-8">
       <Link href="/messages" className="text-sm text-action underline-offset-4 hover:underline">All messages</Link>
-      <section aria-label="Listing" className="sticky top-14 z-10 grid grid-cols-[4rem_1fr] gap-3 border border-rule bg-surface p-3">
+      <section aria-label="Listing" className="sticky top-14 z-10 grid grid-cols-[4rem_1fr] gap-3 rounded-lg border border-rule bg-surface p-3">
         {t.listing.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
           <img loading="lazy" decoding="async" src={t.listing.photoUrl} alt="" className="aspect-square w-16 object-cover" />
@@ -48,7 +48,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ convers
           {STATUS_NOTE[t.listing.status] ? <span className="text-sm text-steel">{STATUS_NOTE[t.listing.status]}</span> : null}
         </div>
       </section>
-      <p className="flex items-start gap-2 border border-rule bg-page p-3 text-sm text-steel">
+      <p className="flex items-start gap-2 rounded-lg border border-rule bg-page p-3 text-sm text-steel">
         <Icon name="lock" size="sm" className="mt-0.5 shrink-0" />
         For your safety, phone numbers, emails and UPI ids are removed from messages. Keep talking and paying on RePart so you&apos;re protected.
       </p>

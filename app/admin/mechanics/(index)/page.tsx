@@ -21,7 +21,7 @@ export default async function MechanicsPage() {
   return (
     <Page title="Partner garages" intro="Garages that do Partner Checks, their service areas and daily capacity.">
       {waiting.length ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Partner Checks waiting for a garage</h2>
           <p className="text-sm">These orders can&apos;t move to pickup until a garage checks the part.</p>
           {waiting.map((o) => (
@@ -47,7 +47,7 @@ export default async function MechanicsPage() {
           </tr>
         ))}
       </AdminTable>
-      <section className="flex max-w-2xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-2xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Add a garage</h2>
         <GarageForm />
       </section>

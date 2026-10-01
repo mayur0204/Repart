@@ -58,7 +58,7 @@ export function PayForm({ action, label, mode, children }: { action: Action; lab
     <form action={submit} className="flex flex-col gap-3">
       {children}
       {error ? (
-        <p role="alert" className="flex items-start gap-2 border border-danger bg-danger-tint p-3 text-danger">
+        <p role="alert" className="flex items-start gap-2 rounded-lg border border-danger bg-danger-tint p-3 text-danger">
           <Icon name="error" className="mt-0.5 shrink-0" />
           {error}
         </p>

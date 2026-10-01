@@ -21,11 +21,16 @@ export function BottomBar() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center gap-0.5 text-sm",
-                  item.primary ? "bg-action font-semibold text-surface" : active ? "font-semibold text-ink" : "text-steel",
-                  !item.primary && active && "border-t-2 border-ink",
+                  item.primary ? "font-semibold text-ink" : active ? "font-semibold text-action" : "text-steel",
                 )}
               >
-                <Icon name={item.icon} />
+                {item.primary ? (
+                  <span className="flex size-8 items-center justify-center rounded-full bg-brand">
+                    <Icon name={item.icon} />
+                  </span>
+                ) : (
+                  <Icon name={item.icon} />
+                )}
                 {item.label}
               </Link>
             </li>

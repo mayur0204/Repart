@@ -29,7 +29,7 @@ export default async function SettingsPage() {
           </tr>
         ))}
       </AdminTable>
-      <section className="flex max-w-3xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-3xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Create a new version</h2>
         <p className="text-steel">Starts from the active version ({active.version}). Change the values you need; the whole document is checked before it&apos;s saved.</p>
         <ActionForm action={createSettingsVersion} submitLabel="Save as new version">

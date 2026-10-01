@@ -24,11 +24,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   return (
     <Page title="Leave a review" intro={s.title} narrow>
       {s.mine ? (
-        <p className="border border-rule bg-surface p-4">
+        <p className="rounded-lg border border-rule bg-surface p-4">
           You rated {whom} {s.mine.rating} out of 5.{s.mine.text ? ` "${s.mine.text}"` : ""}
         </p>
       ) : !s.completed ? (
-        <p className="border border-rule bg-surface p-4">Reviews open once the order is completed.</p>
+        <p className="rounded-lg border border-rule bg-surface p-4">Reviews open once the order is completed.</p>
       ) : (
         <ActionForm action={leaveReview} submitLabel="Submit review">
           <input type="hidden" name="orderId" value={id} />

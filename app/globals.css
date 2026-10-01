@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /*
- * RePart design tokens (REPART_BRIEF.md §10, PLAN.md §8.1).
+ * RePart design tokens: the Stitch "RePart Design System" (REPART_BRIEF.md §10 as amended).
  * Hard rules enforced here AND by scripts/check-design-rules.ts:
- *  - no rounded corners anywhere (every radius token is 0 + a base reset)
+ *  - corners only from the radius tokens below (8px controls, 16px cards, full pills)
  *  - no decorative shadows (only --shadow-float for menus/modals)
  *  - no gradients
  */
@@ -19,37 +19,34 @@
   --font-*: initial;
   --text-*: initial;
 
-  /* Every radius token exists and is 0, so even a stray class renders square. */
-  --radius-xs: 0;
-  --radius-sm: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
-  --radius-3xl: 0;
-  --radius-4xl: 0;
-  --radius-full: 0;
-  --radius: 0;
+  /* Stitch shapes: sm for checkboxes, md for controls, lg for cards and media, full for pills. */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-full: 9999px;
 
-  /* Colour */
-  --color-ink: #1a2126;
-  --color-steel: #56626b;
-  --color-rule: #d3d8db;
-  --color-page: #f2f4f5;
+  /* Colour (Stitch palette; text colours meet WCAG AA on page and surface) */
+  --color-ink: #0f172a; /* deep navy */
+  --color-steel: #626a78; /* Stitch #6B7280, a touch darker for AA on the warm canvas */
+  --color-rule: #e5e7eb;
+  --color-page: #fff7f2; /* warm canvas */
   --color-surface: #ffffff;
-  --color-action: #0b5cad;
-  --color-action-hover: #084a8c;
-  --color-fit: #1b7a43;
-  --color-fit-tint: #e6f2eb;
+  --color-brand: #ff6b35; /* primary fills; always with ink text (white fails AA) */
+  --color-brand-hover: #f25a22;
+  --color-brand-tint: #ffede4;
+  --color-action: #ab3500; /* links, focus, selected state: the AA-safe orange */
+  --color-action-hover: #832600;
+  --color-fit: #006c49;
+  --color-fit-tint: #e7f8f1;
   --color-caution: #7a5200;
   --color-caution-tint: #fcf1d9;
-  --color-danger: #b42318;
-  --color-danger-tint: #fbe9e7;
+  --color-danger: #ba1a1a;
+  --color-danger-tint: #ffe9e6;
   --color-transparent: transparent;
   --color-current: currentColor;
 
   /* The only shadow allowed: floating layers (menus, modals). */
-  --shadow-float: 0 4px 16px rgb(26 33 38 / 0.12);
+  --shadow-float: 0 20px 25px -5px rgb(15 23 42 / 0.06), 0 8px 10px -6px rgb(15 23 42 / 0.03);
 
   /* Type scale (rem): 0.875 / 1 / 1.125 / 1.375 / 1.75 / 2.25 */
   --text-sm: 0.875rem;
@@ -64,20 +61,17 @@
   --text-2xl--line-height: 1.2;
   --text-3xl: 2.25rem;
   --text-3xl--line-height: 1.15;
+  --text-4xl: 3rem;
+  --text-4xl--line-height: 1.15;
 
-  --font-sans: var(--font-anek), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-heading: var(--font-jakarta), var(--font-inter), system-ui, sans-serif;
 
   --spacing: 0.25rem; /* 4px base */
   --container-page: 80rem; /* 1280px */
 }
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    border-radius: 0 !important; /* belt and braces, incl. UA and Radix styles */
-  }
-
   html {
     -webkit-text-size-adjust: 100%;
   }
@@ -88,7 +82,6 @@
     font-family: var(--font-sans);
     font-size: var(--text-base);
     line-height: 1.5;
-    font-stretch: 100%;
     font-weight: 400;
   }
 
@@ -96,8 +89,8 @@
   h2,
   h3,
   h4 {
-    font-stretch: 87.5%; /* narrower width for headings */
-    font-weight: 600;
+    font-family: var(--font-heading);
+    font-weight: 700;
     line-height: 1.2;
   }
 
@@ -122,6 +115,27 @@
       animation: none !important;
     }
   }
+}
+
+/*
+ * Search filters: a <details> disclosure on mobile, always open as a left rail from lg up (Stitch "Search & Filter").
+ * Guarded so browsers without ::details-content keep a working disclosure.
+ */
+@supports selector(::details-content) {
+  @media (width >= 64rem) {
+    details.filters > summary {
+      display: none;
+    }
+    details.filters::details-content {
+      content-visibility: visible;
+    }
+  }
+}
+details.filters > summary {
+  list-style: none;
+}
+details.filters > summary::-webkit-details-marker {
+  display: none;
 }
 
 /* Tabular figures for prices and counts. */

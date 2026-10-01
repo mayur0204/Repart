@@ -50,7 +50,7 @@ export default async function SettingsVersionPage({ params }: { params: Promise<
           <p className="text-steel">No differences from the active version.</p>
         )
       ) : null}
-      <details className="border border-rule bg-surface p-3">
+      <details className="rounded-lg border border-rule bg-surface p-3">
         <summary className="cursor-pointer font-semibold">All values</summary>
         <pre className="mt-2 overflow-x-auto font-sans text-sm whitespace-pre">{JSON.stringify(snapshot.settings, null, 2)}</pre>
       </details>

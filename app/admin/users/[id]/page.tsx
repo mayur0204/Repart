@@ -27,7 +27,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   return (
     <Page title={u.name ?? "Unnamed user"} intro={u.id} actions={u.status === "ACTIVE" ? <Badge tone="fit">Active</Badge> : <Badge tone="danger">{u.status.toLowerCase()}</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
           <h2 className="text-xl">Account</h2>
           <p>Phone {u.phone}{u.email ? `, email ${u.email}` : ""}</p>
           <p>
@@ -50,7 +50,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             )}
           </p>
         </section>
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Roles</h2>
           <p className="text-sm">{u.roles.map((r) => r.toLowerCase()).join(", ")}</p>
           <div className="flex flex-wrap gap-2">

@@ -41,7 +41,7 @@ export default async function PaymentReturnPage({ searchParams }: Props) {
 
   return (
     <Page title={paid ? "Payment received" : failed ? "Payment didn't go through" : expired ? "Order cancelled" : "Confirming your payment"} narrow>
-      <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         {paid ? (
           <p>Thanks. Your payment for {order.title} is confirmed and held safely. The seller has been asked to confirm the order.</p>
         ) : failed ? (

@@ -28,7 +28,7 @@ export default async function PayoutsPage() {
 
   return (
     <Page title="Payouts" intro="RePart pays sellers through our payment partner, Cashfree. Your bank, UPI and PAN details go straight to them and are not stored by RePart.">
-      <section className="flex max-w-2xl flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex max-w-2xl flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl">Payout account</h2>
           <Badge tone={st.tone}>{st.label}</Badge>
@@ -41,7 +41,7 @@ export default async function PayoutsPage() {
       </section>
 
       {s.canSubmit ? (
-        <section className="flex max-w-2xl flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex max-w-2xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Your payout details</h2>
           <ActionForm action={submitPayoutDetails} submitLabel="Submit payout details">
             <PayoutFields defaults={{ name: user.name ?? "", email: user.email ?? "" }} />

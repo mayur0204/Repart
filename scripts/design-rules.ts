@@ -3,7 +3,7 @@ import { extname, join, relative, sep } from "node:path";
 
 /**
  * Static design-rule check (REPART_BRIEF.md §10 hard rules, PLAN.md §8.2 layer 1).
- * Fails on rounded corners, decorative shadows, gradients, blur, all-caps, tracking,
+ * Fails on off-token rounded corners, decorative shadows, gradients, blur, all-caps, tracking,
  * monospace, hover lift, emoji, middle-dot meta strings and arrows appended to text.
  */
 
@@ -14,12 +14,14 @@ type Rule = { id: string; pattern: RegExp; message: string };
 // Class tokens in TS/TSX (comments are stripped before matching).
 const TOKEN = String.raw`(?<=^|[\s"'\`{(:!])`;
 const END = String.raw`(?=$|[\s"'\`})])`;
+// Stitch shapes: only the sm/md/lg/full tokens (optionally per side) or none. Bare `rounded`, xl+ and arbitrary values fail.
+const RADIUS_OK = String.raw`(?!-(?:[trblse]{1,2}-)?(?:sm|md|lg|full|none)${END})`;
 
 const codeRules: Rule[] = [
-  { id: "no-rounded", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*!?rounded(?:-[\\w\\[\\]/.%-]+)?${END}`, "g"), message: "rounded corners are not allowed" },
+  { id: "no-rounded", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*!?rounded${RADIUS_OK}(?:-[\\w\\[\\]/.%-]+)?${END}`, "g"), message: "use rounded-sm/md/lg/full only" },
   { id: "no-radius-style", pattern: /borderRadius\s*:(?!\s*(?:0\b|["'`]0(?:px)?["'`]))[^,}\n]+/g, message: "non-zero borderRadius in style" },
   { id: "no-shadow", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*!?(?:shadow(?!-float${END})(?:-[\\w\\[\\]/.%-]+)?|drop-shadow(?:-[\\w-]+)?|inset-shadow(?:-[\\w-]+)?)${END}`, "g"), message: "only shadow-float (floating layers) is allowed" },
-  { id: "no-gradient", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*(?:(?:bg-gradient|bg-linear|bg-radial|bg-conic)-[\\w\\[\\]/.%-]+|(?:from|via|to)-(?:ink|steel|rule|page|surface|action|fit|caution|danger|transparent|current|white|black|\\[)[\\w\\[\\]/.%#-]*)${END}`, "g"), message: "gradients are not allowed" },
+  { id: "no-gradient", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*(?:(?:bg-gradient|bg-linear|bg-radial|bg-conic)-[\\w\\[\\]/.%-]+|(?:from|via|to)-(?:ink|steel|rule|page|surface|brand|action|fit|caution|danger|transparent|current|white|black|\\[)[\\w\\[\\]/.%#-]*)${END}`, "g"), message: "gradients are not allowed" },
   { id: "no-blur", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*(?:backdrop-blur(?:-[\\w-]+)?|blur-[\\w\\[\\]-]+)${END}`, "g"), message: "blur / glassmorphism is not allowed" },
   { id: "no-uppercase", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*uppercase${END}`, "g"), message: "ALL-CAPS labels are not allowed" },
   { id: "no-tracking", pattern: new RegExp(`${TOKEN}(?:[a-z0-9-]+:)*tracking-[\\w\\[\\]/.%-]+${END}`, "g"), message: "tracked-out text is not allowed (use part-no for part numbers)" },
@@ -32,7 +34,7 @@ const codeRules: Rule[] = [
 
 const cssRules: Rule[] = [
   { id: "no-radius-css", pattern: /border(?:-[a-z]+)*-radius\s*:(?!\s*0(?:px|rem|em|%)?\s*(?:!important)?\s*[;}])[^;}]+/g, message: "non-zero border-radius" },
-  { id: "no-radius-token", pattern: /--radius[\w-]*\s*:(?!\s*(?:0|initial)\s*[;}])[^;}]+/g, message: "radius tokens must be 0" },
+  { id: "no-radius-token", pattern: /--radius(?!-(?:sm|md|lg|full)\s*:)[\w-]*\s*:(?!\s*(?:0|initial)\s*[;}])[^;}]+/g, message: "only the sm/md/lg/full radius tokens may be non-zero" },
   { id: "no-gradient-css", pattern: /(?:linear|radial|conic)-gradient\(/g, message: "gradients are not allowed" },
   { id: "no-blur-css", pattern: /backdrop-filter|filter\s*:\s*blur/g, message: "blur / glassmorphism is not allowed" },
   { id: "no-uppercase-css", pattern: /text-transform\s*:\s*uppercase/g, message: "ALL-CAPS text is not allowed" },

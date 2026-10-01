@@ -47,7 +47,7 @@ export function ActionForm({
     <form action={formAction} className={cn("flex flex-col gap-4", className)} noValidate>
       <FormStateContext.Provider value={{ state, pending }}>
         {state && !state.ok && state.message ? (
-          <p role="alert" className="flex items-start gap-2 border border-danger bg-danger-tint p-3 text-danger">
+          <p role="alert" className="flex items-start gap-2 rounded-lg border border-danger bg-danger-tint p-3 text-danger">
             <Icon name="error" className="mt-0.5 shrink-0" />
             {state.message}
           </p>

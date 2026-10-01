@@ -52,13 +52,13 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
   return (
     <Page title={o.title} intro={`Order ${o.id}`} actions={<Badge>{ORDER_STATE_TEXT[o.state] ?? o.state}</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Money</h2>
           <BuyerBreakdown money={o.money} />
           <SellerBreakdown itemPricePaise={o.itemPricePaise} money={o.money} />
           <p className="text-sm">RePart keeps {formatPrice(o.merchantSharePaise)} (delivery, check and the platform fee).</p>
         </section>
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
           <h2 className="text-xl">Payment</h2>
           {p ? (
             <dl className="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -82,7 +82,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       </div>
 
       {o.shipments[0] ? (
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Shipment</h2>
           <ShipmentTracking shipment={o.shipments[0]} />
           {o.state === "IN_TRANSIT" && ["FAILED", "RETURNED_TO_ORIGIN"].includes(o.shipments[0].status) ? (
@@ -113,7 +113,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       ) : null}
 
       {p?.refunds.length ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Refunds</h2>
           <ul className="flex flex-col text-sm">
             {p.refunds.map((r) => (
@@ -127,7 +127,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
           <h2 className="text-xl">Partner Check</h2>
           {inspection ? (
             <p>
@@ -139,7 +139,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
             <p>{o.inspectionReason ? "Required, no garage booked yet." : "None."}</p>
           )}
         </section>
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4 text-sm">
           <h2 className="text-xl">Dispute</h2>
           {o.dispute ? (
             <p>
@@ -184,14 +184,14 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
       </section>
 
       {o.reconciliationMismatches.length ? (
-        <section className="flex flex-col gap-2 border border-caution bg-surface p-4 text-sm">
+        <section className="flex flex-col gap-2 rounded-lg border border-caution bg-surface p-4 text-sm">
           <h2 className="text-xl">Flagged mismatches</h2>
           <ul>{o.reconciliationMismatches.map((m) => <li key={m.id}>{m.kind}{m.resolvedAt ? " (resolved)" : ""}</li>)}</ul>
         </section>
       ) : null}
 
       {o.state === "DISPUTED" ? (
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Resolve dispute</h2>
           {o.dispute ? <p className="text-sm">{o.dispute.reason}: {o.dispute.description}</p> : null}
           <ActionForm action={resolveOrderDispute} submitLabel="Record decision">
@@ -204,7 +204,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           </ActionForm>
         </section>
       ) : OPEN_PAID.includes(o.state) ? (
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Cancel and refund</h2>
           <ActionForm action={cancelAndRefund} submitLabel="Cancel order and refund">
             <input type="hidden" name="orderId" value={o.id} />
@@ -212,7 +212,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ id:
           </ActionForm>
         </section>
       ) : o.state === "CANCELLED" && p?.status === "SUCCESS" ? (
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Refund captured payment</h2>
           <p className="text-sm">This order is cancelled but a payment was captured. Refund it here.</p>
           <ActionForm action={refundCancelledOrder} submitLabel="Refund">

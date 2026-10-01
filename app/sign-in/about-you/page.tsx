@@ -28,7 +28,7 @@ export default async function AboutYouPage({ searchParams }: { searchParams: Pro
         <FormInput label="Your name" name="name" autoComplete="name" defaultValue={user.name ?? ""} autoFocus />
         <FormInput label="Email (optional)" name="email" type="email" autoComplete="email" defaultValue={user.email ?? ""} help="For order receipts. We never share it." />
 
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-lg">How we use your details</h2>
           {required.map((p) => (
             <div key={p}>

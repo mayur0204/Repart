@@ -28,7 +28,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
   const a = (d.job.locationAddress ?? {}) as { contactName?: string; line1?: string; line2?: string | null; landmark?: string | null; city?: string; pincode?: string };
   return (
     <Page title={d.listing.title} actions={<Badge>{d.job.status === "COMPLETED" && d.job.outcome ? OUTCOME_TEXT[d.job.outcome] : d.job.status === "SCHEDULED" ? "Scheduled" : d.job.status.toLowerCase().replace("_", " ")}</Badge>}>
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">Where and when</h2>
         {d.job.slotStart ? (
           <p>
@@ -38,7 +38,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
         <p>{[a.contactName, a.line1, a.line2, a.landmark, a.city, a.pincode].filter(Boolean).join(", ")}</p>
         {d.job.reason === "AUDIT" ? <p className="text-sm text-steel">Routine quality check picked by RePart.</p> : null}
       </section>
-      <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">The part</h2>
         <p>
           {d.listing.category}
@@ -50,7 +50,7 @@ export default async function MechanicJobPage({ params }: { params: Promise<{ id
           {d.sellerPhotos.map((p) => (
             <li key={p.url}>
               {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage */}
-              <img loading="lazy" decoding="async" src={p.url} alt={`Seller photo: ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
+              <img loading="lazy" decoding="async" src={p.url} alt={`Seller photo: ${p.shotType}`} className="aspect-square w-full rounded-lg border border-rule object-cover" />
             </li>
           ))}
         </ul>

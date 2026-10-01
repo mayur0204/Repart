@@ -37,7 +37,7 @@ export default async function SellerDashboard() {
             <h2 id={`h-${status}`} className="text-xl">
               {STATUS_LABEL[status].label} <span className="num text-steel">({groups.get(status)!.length})</span>
             </h2>
-            <ul className="flex flex-col border border-rule bg-surface">
+            <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
               {groups.get(status)!.map((l) => (
                 <li key={l.id} className="border-b border-rule last:border-b-0">
                   <Link href={status === "DRAFT" ? `/sell/${l.id}/review` : `/sell/${l.id}/status`} className="flex min-h-11 flex-wrap items-center justify-between gap-2 p-4 hover:bg-page">

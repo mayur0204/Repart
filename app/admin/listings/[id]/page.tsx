@@ -68,9 +68,9 @@ export default async function ListingRiskPage({ params }: { params: Promise<{ id
               <li key={p.id} className="flex flex-col gap-1 text-sm">
                 {p.url ? (
                   // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-                  <img loading="lazy" decoding="async" src={p.url} alt={`Photo ${i + 1}, ${p.shotType}`} className="aspect-square w-full border border-rule object-cover" />
+                  <img loading="lazy" decoding="async" src={p.url} alt={`Photo ${i + 1}, ${p.shotType}`} className="aspect-square w-full rounded-lg border border-rule object-cover" />
                 ) : (
-                  <span className="flex aspect-square items-center justify-center border border-rule text-steel">Not available</span>
+                  <span className="flex aspect-square items-center justify-center rounded-lg border border-rule text-steel">Not available</span>
                 )}
                 <span className="num text-steel">
                   Photo {i + 1}: {p.width}×{p.height}, blur {p.blurScore?.toFixed(0)}, brightness {p.brightnessScore?.toFixed(0)}
@@ -82,7 +82,7 @@ export default async function ListingRiskPage({ params }: { params: Promise<{ id
 
         <aside className="flex flex-col gap-4 lg:col-span-4">
           {results?.needsAdminReview ? (
-            <section className="flex flex-col gap-2 border border-caution bg-caution-tint p-3 text-caution">
+            <section className="flex flex-col gap-2 rounded-lg border border-caution bg-caution-tint p-3 text-caution">
               <h2 className="text-lg">Why it was flagged</h2>
               <ul className="flex flex-col gap-1 text-sm">{results.reviewReasons.map((r) => <li key={r}>{r}</li>)}</ul>
             </section>

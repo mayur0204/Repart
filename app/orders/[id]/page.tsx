@@ -37,13 +37,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   return (
     <Page title={o.title} actions={<Badge>{ORDER_STATE_TEXT[o.state] ?? o.state}</Badge>}>
       {o.state === "AWAITING_SELLER" && o.sellerConfirmBy ? (
-        <p className="border border-rule bg-surface p-3">
+        <p className="rounded-lg border border-rule bg-surface p-3">
           Waiting for the seller to confirm, by <DateText date={o.sellerConfirmBy} /> ({o.sellerHoursLeft} hours left). If they don&apos;t, you get a full refund.
         </p>
       ) : null}
       {o.inspectionReason || o.inspection ? <PartnerCheckPanel inspection={o.inspection} audience="buyer" reason={o.inspectionReason} waitingForSeller={o.state === "PAID_HELD" || o.state === "AWAITING_SELLER"} /> : null}
       {o.state === "AWAITING_HANDOVER" ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Collect the part</h2>
           <p>Agree a safe, public place and a time with the seller in Messages. When you have the part, confirm the handover here.</p>
           {o.conversationId ? <Link href={`/messages/${o.conversationId}`} className="text-action underline underline-offset-4">Open messages with the seller</Link> : null}
@@ -53,7 +53,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </section>
       ) : null}
       {o.state === "ACCEPTANCE_WINDOW" && o.acceptanceEndsAt ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Check the part</h2>
           <p>
             You have until <DateText date={o.acceptanceEndsAt} /> ({o.acceptanceHoursLeft} hours left). If you do nothing, the order completes automatically and the seller is paid.
@@ -69,29 +69,29 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </section>
       ) : null}
       {["DISPUTED", "RESOLVED_REFUND", "RESOLVED_RELEASE"].includes(o.state) ? (
-        <p className="border border-rule bg-surface p-3">
+        <p className="rounded-lg border border-rule bg-surface p-3">
           <Link href={`/orders/${o.id}/dispute`} className="text-action underline underline-offset-4">See the dispute and next steps</Link>
         </p>
       ) : null}
       {o.state === "COMPLETED" ? (
-        <p className="border border-rule bg-surface p-3">
+        <p className="rounded-lg border border-rule bg-surface p-3">
           Order complete. <Link href={`/orders/${o.id}/review`} className="text-action underline underline-offset-4">Leave a review for the seller</Link>
         </p>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Progress</h2>
           <OrderTimeline steps={o.timeline} />
           {o.cancelReason ? <p className="text-sm text-steel">{o.cancelReason}</p> : null}
         </section>
 
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">{delivery ? "Delivery" : "Local pickup"}</h2>
           {o.shipment ? <ShipmentTracking shipment={o.shipment} /> : <p className="text-sm text-steel">{delivery ? "The courier pickup is booked once the seller confirms." : "You collect the part from the seller."}</p>}
         </section>
 
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">What you pay</h2>
           <BuyerBreakdown money={o.money} />
           {o.payment ? <p className="text-sm text-steel">{o.payment.paidAt ? "Paid. Your money is held until you accept the part." : "Not paid yet."}</p> : null}
@@ -123,7 +123,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </section>
 
         {o.cancelRefund ? (
-          <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+          <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
             <h2 className="text-xl">Cancel this order</h2>
             <p className="text-sm">
               You can cancel until the part is picked up. You&apos;d get back {formatPrice(refundTotal)}

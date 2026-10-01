@@ -9,8 +9,10 @@ type StateProps = { title: string; body: ReactNode; action?: ReactNode };
 
 function StatePanel({ icon, title, body, action, role }: StateProps & { icon: IconName; role?: "alert" }) {
   return (
-    <section role={role} className="flex flex-col items-start gap-3 border border-rule bg-surface p-6">
-      <Icon name={icon} size="lg" className="text-steel" />
+    <section role={role} className="flex flex-col items-start gap-3 rounded-lg border border-rule bg-surface p-6">
+      <span className="flex size-12 items-center justify-center rounded-full bg-brand-tint text-action">
+        <Icon name={icon} size="lg" />
+      </span>
       <h2 className="text-xl">{title}</h2>
       <div className="prose-measure text-steel">{body}</div>
       {action ? <div className="mt-1">{action}</div> : null}

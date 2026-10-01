@@ -50,7 +50,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
   return (
     <Page title={o.title} actions={<Badge>{ORDER_STATE_TEXT[o.state] ?? o.state}</Badge>}>
       {o.state === "AWAITING_SELLER" ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Confirm the part is available</h2>
           {o.sellerConfirmBy ? (
             <p>
@@ -87,7 +87,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
       ) : null}
 
       {o.dispute ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Dispute</h2>
           <p>
             The buyer reported a problem: {DISPUTE_REASON_TEXT[o.dispute.reason] ?? o.dispute.reason}. {DISPUTE_STATUS_TEXT[o.dispute.status] ?? o.dispute.status}.
@@ -107,7 +107,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
         </section>
       ) : null}
       {o.state === "COMPLETED" ? (
-        <p className="border border-rule bg-surface p-3">
+        <p className="rounded-lg border border-rule bg-surface p-3">
           Order complete. <Link href={`/orders/${o.id}/review`} className="text-action underline underline-offset-4">Leave a review for the buyer</Link>
         </p>
       ) : null}
@@ -115,7 +115,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
       {o.inspection || o.state === "INSPECTION_SCHEDULED" ? <PartnerCheckPanel inspection={o.inspection} audience="seller" reason={o.inspectionReason} /> : null}
 
       {o.state === "INSPECTION_PASSED" && delivery ? (
-        <section className="flex flex-col gap-3 border border-caution bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-caution bg-surface p-4">
           <h2 className="text-xl">Book the pickup</h2>
           <p>The Partner Check passed. Choose a pickup slot for the courier.</p>
           <ActionForm action={bookPickup} submitLabel="Book pickup">
@@ -126,7 +126,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
       ) : null}
 
       {o.state === "AWAITING_HANDOVER" ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Hand over the part</h2>
           <p>Agree a safe, public place and a time with the buyer. The buyer confirms the handover in the app.</p>
           {o.conversationId ? <Link href={`/messages/${o.conversationId}`} className="text-action underline underline-offset-4">Open messages with the buyer</Link> : null}
@@ -134,7 +134,7 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">{delivery ? "Shipping" : "Local pickup"}</h2>
           {delivery && o.listing.category ? (
             <div className="flex flex-col gap-1">
@@ -145,13 +145,13 @@ export default async function SellerOrderPage({ params }: { params: Promise<{ id
           ) : null}
           {o.shipment ? <ShipmentTracking shipment={o.shipment} /> : delivery ? <p className="text-sm text-steel">No pickup booked yet.</p> : null}
         </section>
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Progress</h2>
           <OrderTimeline steps={o.timeline} />
         </section>
       </div>
 
-      <section className="flex max-w-xl flex-col gap-2 border border-rule bg-surface p-4">
+      <section className="flex max-w-xl flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">What you receive</h2>
         <SellerBreakdown itemPricePaise={o.itemPricePaise} money={o.money} />
         {o.payment ? <p className="text-sm text-steel">Payout: {SETTLEMENT_TEXT[o.payment.vendorSettlementStatus] ?? o.payment.vendorSettlementStatus}.</p> : null}

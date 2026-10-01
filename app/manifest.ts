@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Used motorcycle and scooter parts, checked and delivered.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f2f4f5",
-    theme_color: "#1a2126",
+    background_color: "#fff7f2",
+    theme_color: "#0f172a",
     lang: "en-IN",
     scope: "/",
     icons: [

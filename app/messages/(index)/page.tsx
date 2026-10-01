@@ -19,7 +19,7 @@ export default async function InboxPage() {
       {threads.length === 0 ? (
         <EmptyState title="No messages yet" body="Open a listing and select Message seller to ask about a part." action={<ButtonLink href="/search" variant="secondary">Search parts</ButtonLink>} />
       ) : (
-        <ul className="flex flex-col border border-rule bg-surface">
+        <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
           {threads.map((t) => (
             <li key={t.id} className="border-b border-rule last:border-b-0">
               <Link href={`/messages/${t.id}`} className={cn("grid grid-cols-[4rem_1fr] gap-3 p-3 hover:bg-page", t.unread && "border-l-4 border-l-action")}>

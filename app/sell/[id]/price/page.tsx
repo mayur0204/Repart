@@ -43,7 +43,7 @@ export default async function PriceStep({ params }: { params: Promise<{ id: stri
             {saved.map((a) => <option key={a.id} value={a.id}>{a.label ?? a.contactName}: {a.line1}, {a.city} {a.pincode}</option>)}
           </FormSelect>
         ) : (
-          <p className="border border-caution bg-caution-tint p-3 text-caution">
+          <p className="rounded-lg border border-caution bg-caution-tint p-3 text-caution">
             Add a pickup address first in <Link href="/account/addresses" className="underline">Account, Addresses</Link>, then come back to this step.
           </p>
         )}
@@ -60,7 +60,7 @@ export default async function PriceStep({ params }: { params: Promise<{ id: stri
           <option value="LOCAL_PICKUP">Local pickup only</option>
         </FormSelect>
         {state.category ? (
-          <section className="flex flex-col gap-1 border border-rule bg-surface p-3">
+          <section className="flex flex-col gap-1 rounded-lg border border-rule bg-surface p-3">
             <h2 className="text-lg">How to pack {state.category.name.toLowerCase()}</h2>
             <p className="prose-measure text-steel">{state.category.packagingGuide}</p>
           </section>

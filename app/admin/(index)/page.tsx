@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Admin | RePart" };
 
 function Metric({ label, value, href, note }: { label: string; value: ReactNode; href: string; note?: string }) {
   return (
-    <Link href={href} className="flex flex-col gap-1 border border-rule bg-surface p-4 hover:bg-page">
+    <Link href={href} className="flex flex-col gap-1 rounded-lg border border-rule bg-surface p-4 hover:bg-page">
       <span className="text-sm text-steel">{label}</span>
       <span className="text-2xl font-semibold tabular-nums">{value}</span>
       {note ? <span className="text-sm text-steel">{note}</span> : null}

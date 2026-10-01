@@ -19,7 +19,7 @@ export default async function VariantsPage({ searchParams }: { searchParams: Pro
 
   return (
     <Page title="Variants" intro="A variant is a specific version of a model over a range of years.">
-      <section className="flex max-w-xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">{editing ? `Edit ${editing.name}` : "Add a variant"}</h2>
         <ActionForm
           key={editing?.id ?? "new"}

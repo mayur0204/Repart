@@ -13,6 +13,7 @@ export const MOBILE_NAV: NavItem[] = [
 
 export const DESKTOP_NAV: NavItem[] = [
   { href: "/sell", label: "Sell a part", icon: "plus", primary: true },
+  { href: "/orders", label: "Orders", icon: "orders" },
   { href: "/messages", label: "Messages", icon: "messages" },
   { href: "/account", label: "Account", icon: "user" },
 ];

@@ -24,7 +24,7 @@ export default async function MechanicHistoryPage() {
   }
   return (
     <Page title="History and earnings" intro={h.partner.garageName}>
-      <p className="border border-rule bg-surface p-4">
+      <p className="rounded-lg border border-rule bg-surface p-4">
         {h.completedCount} completed {h.completedCount === 1 ? "check" : "checks"} at {formatPrice(h.partner.feePerInspection)} each: <span className="font-semibold tabular-nums">{formatPrice(h.earningsPaise)}</span>
       </p>
       {h.done.length ? (

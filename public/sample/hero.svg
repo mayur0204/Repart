@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Sample illustration of a motorcycle">
+  <rect width="640" height="400" fill="#ffede4"/>
+  <circle cx="540" cy="80" r="44" fill="#ff6b35" opacity="0.25"/>
+  <line x1="50" y1="374" x2="590" y2="374" stroke="#e5e7eb" stroke-width="6" stroke-linecap="round"/>
+  <path d="M310 302 L222 286" stroke="#626a78" stroke-width="16" stroke-linecap="round"/>
+  <path d="M170 300 L320 286" stroke="#0f172a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M240 196 L424 166 L390 258 L318 288" fill="none" stroke="#0f172a" stroke-width="10" stroke-linejoin="round"/>
+  <rect x="286" y="214" width="100" height="80" rx="14" fill="#0f172a"/>
+  <path d="M300 236 H372 M300 254 H372 M300 272 H372" stroke="#626a78" stroke-width="5"/>
+  <path d="M300 162 Q342 126 410 138 L426 168 L304 184 Z" fill="#ff6b35"/>
+  <path d="M188 182 L306 172 L300 192 L198 200 Z" fill="#0f172a"/>
+  <path d="M188 182 L146 176 L164 204 L198 200 Z" fill="#ff6b35"/>
+  <path d="M432 150 L480 300" stroke="#0f172a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M436 152 L440 130" stroke="#0f172a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M416 126 L458 136" stroke="#0f172a" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="464" cy="174" r="16" fill="#ffffff" stroke="#0f172a" stroke-width="6"/>
+  <path d="M436 238 Q482 212 526 242" fill="none" stroke="#ff6b35" stroke-width="10" stroke-linecap="round"/>
+  <g fill="none">
+    <circle cx="170" cy="300" r="66" stroke="#0f172a" stroke-width="20"/>
+    <circle cx="170" cy="300" r="44" stroke="#ff6b35" stroke-width="5"/>
+    <circle cx="480" cy="300" r="66" stroke="#0f172a" stroke-width="20"/>
+    <circle cx="480" cy="300" r="44" stroke="#ff6b35" stroke-width="5"/>
+    <circle cx="480" cy="300" r="28" stroke="#626a78" stroke-width="6"/>
+  </g>
+  <circle cx="170" cy="300" r="12" fill="#0f172a"/>
+  <circle cx="480" cy="300" r="12" fill="#0f172a"/>
+</svg>

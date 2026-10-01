@@ -32,14 +32,14 @@ export default async function GaragePage({ params }: { params: Promise<{ id: str
   return (
     <Page title={g.garageName} actions={g.active ? <Badge tone="fit">Active</Badge> : <Badge tone="caution">Inactive</Badge>}>
       <div className="grid gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Details</h2>
           <GarageForm garage={g} />
           <p className="text-sm text-steel">
             {g.inspectionsCompleted} checks done. Fail rate {g.failRate === null ? "n/a" : `${Math.round(g.failRate * 100)}%`}, on time {g.onTimeRate === null ? "n/a" : `${Math.round(g.onTimeRate * 100)}%`}.
           </p>
         </section>
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Mechanics</h2>
           <ul className="flex flex-col">
             {g.staff.map((s) => (

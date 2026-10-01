@@ -351,12 +351,14 @@ Loading (skeletons matching the final layout, no spinners), empty, error, offlin
 ### Direction
 Professional, calm and trustworthy: a well-run parts counter, not a startup landing page. The part photos and the facts about fit and condition are the content; the interface stays quiet around them.
 
+Visual source of truth: the Stitch project "RePart Auto Marketplace UI" (RePart Design System). Adopted as a hybrid:
+Stitch colours, logo, type, shapes and layouts; the quieter rules below still apply.
+
 ### Hard rules
-- **No rounded corners anywhere:**
-  - Set every Tailwind borderRadius token to 0.
-  - This applies to buttons, inputs, selects, cards, tiles, images, avatars (square), badges, modals, sheets, dropdowns, toasts, tooltips, progress bars, skeletons and focus rings.
-  - Prefer square selectable option tiles or segmented controls over radio buttons.
-  - Add a lint or test check that fails if any `rounded` class or non-zero border-radius appears.
+- **Corners only from the Stitch radius tokens:**
+  - 4px (`rounded-sm`) checkboxes, 8px (`rounded-md`) buttons, inputs and selects, 16px (`rounded-lg`) cards, tiles, images and modals, full (`rounded-full`) badges and pills.
+  - No other radius values. Prefer selectable option tiles or segmented controls over radio buttons.
+  - The lint and e2e checks fail on any other `rounded` class or radius value.
 - **No drop shadows as decoration.** Separate things with 1px rules, background tone and spacing. The only shadow allowed is a single subtle one for floating layers (menus, modals).
 - **No gradients, glassmorphism, blobs, stock photos, illustrations or emoji** anywhere in the UI.
 - **Avoid these tells:**
@@ -370,8 +372,7 @@ Professional, calm and trustworthy: a well-run parts counter, not a startup land
   - hover lift animations on cards
 
 ### Typography
-- **Anek Latin** (Google Fonts, variable width and weight) for the whole interface. Later, Anek Devanagari and Anek Kannada give Hindi and Kannada matching type.
-- **Headings** use a narrower width and semibold weight; **body** uses normal width and regular weight.
+- **Plus Jakarta Sans** (700–800) for headings, prices and the wordmark; **Inter** for body, labels and data (both Google Fonts).
 - Use tabular figures for prices, part numbers and counts. Part numbers get their own style: slightly larger, semibold, with extra letter-spacing, so they read clearly. Do not use monospace for them.
 - Type scale (rem): 0.875 / 1 / 1.125 / 1.375 / 1.75 / 2.25. Body 1rem, line-height 1.5; headings line-height 1.15–1.25.
 - Keep line length under ~75 characters for body text.
@@ -381,15 +382,16 @@ Professional, calm and trustworthy: a well-run parts counter, not a startup land
 
 | Token | Value | Use |
 |---|---|---|
-| ink | #1A2126 | Primary text |
-| steel | #56626B | Secondary text |
-| rule | #D3D8DB | Borders and dividers |
-| page | #F2F4F5 | Page background |
+| ink | #0F172A | Primary text, dark panels (deep navy) |
+| steel | #626A78 | Secondary text (Stitch #6B7280, darkened for AA on the canvas) |
+| rule | #E5E7EB | Borders and dividers |
+| page | #FFF7F2 | Page background (warm canvas) |
 | surface | #FFFFFF | Panels and tiles |
-| action | #0B5CAD | Primary buttons and links; hover #084A8C |
-| fit | #1B7A43 | Fits / passed; tint #E6F2EB |
+| brand | #FF6B35 | Primary button fills, always with ink text (white on it fails AA); hover #F25A22; tint #FFEDE4 |
+| action | #AB3500 | Links, focus ring, selected state; hover #832600 |
+| fit | #006C49 | Fits / passed; tint #E7F8F1 |
 | caution | #7A5200 | Unconfirmed / needs attention; tint #FCF1D9 |
-| danger | #B42318 | Errors, doesn't fit, failed; tint #FBE9E7 |
+| danger | #BA1A1A | Errors, doesn't fit, failed; tint #FFE9E6 |
 
 - Status colours are always paired with text and an icon, never colour alone.
 - Everything meets WCAG AA contrast.
@@ -420,8 +422,8 @@ On search result tiles, the same status appears as one line of text with an icon
 
 ### Components
 - **Buttons:**
-  - primary: solid action colour
-  - secondary: 1px ink border on white
+  - primary: solid brand orange with ink text
+  - secondary: 1px rule border on white, ink border on hover
   - tertiary: text-only with underline on hover
   - minimum 44px tall
   - labels are verbs saying exactly what happens
@@ -441,7 +443,7 @@ On search result tiles, the same status appears as one line of text with an icon
 - Explain every trust label and fee in one sentence where it appears.
 
 ### Accessibility
-- Keyboard navigable, with a visible focus style (2px action-coloured outline, square).
+- Keyboard navigable, with a visible focus style (2px action-coloured outline).
 - Semantic HTML, labelled inputs, alt text on listing photos from the shot type.
 - Tested with axe in Playwright.
 

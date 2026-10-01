@@ -26,14 +26,14 @@ export default async function PartStep({ params, searchParams }: { params: Promi
       <form method="get" role="search" className="flex max-w-xl flex-col gap-2">
         <label htmlFor="pn" className="text-sm font-semibold">Part number</label>
         <div className="flex gap-2">
-          <input id="pn" name="pn" defaultValue={query} className="min-h-11 flex-1 border border-rule bg-surface px-3" placeholder="As printed on the part or box" />
+          <input id="pn" name="pn" defaultValue={query} className="min-h-11 flex-1 rounded-md border border-rule bg-surface px-3" placeholder="As printed on the part or box" />
           <button type="submit" className={buttonClasses("secondary")}>Find</button>
         </div>
         <p className="text-sm text-steel">{chosen?.category.partNumberHint ?? "Usually stamped on the part or printed on a label. Spaces and dashes don't matter."}</p>
       </form>
 
       {query && candidates.length === 0 ? (
-        <p className="prose-measure border border-caution bg-caution-tint p-3 text-caution">
+        <p className="prose-measure rounded-lg border border-caution bg-caution-tint p-3 text-caution">
           {query} isn&apos;t in our catalogue yet. Check the number, or try another number printed on the part. Listings need a catalogue part number so buyers can check fit.
         </p>
       ) : null}
@@ -57,7 +57,7 @@ export default async function PartStep({ params, searchParams }: { params: Promi
         <ActionForm action={savePart} submitLabel="Save and continue" extraActions={<SaveDraftButton />}>
           <input type="hidden" name="listingId" value={id} />
           <input type="hidden" name="partNumberId" value={chosen.id} />
-          <div className="flex flex-wrap items-center gap-2 border border-rule bg-surface p-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-rule bg-surface p-3">
             <PartNumberText value={chosen.display} />
             <span>{chosen.brand}, {chosen.category.name}</span>
             {chosen.isSample ? <Badge tone="caution">SAMPLE catalogue data</Badge> : null}

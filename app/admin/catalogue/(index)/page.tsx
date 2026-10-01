@@ -22,7 +22,7 @@ export default async function CatalogueHome() {
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {sections.map((s) => (
           <li key={s.href}>
-            <Link href={s.href} className="flex min-h-11 flex-col gap-1 border border-rule bg-surface p-4 hover:border-ink">
+            <Link href={s.href} className="flex min-h-11 flex-col gap-1 rounded-md border border-rule bg-surface p-4 hover:border-ink">
               <span className="font-semibold text-action">{s.label}</span>
               <span className="text-sm text-steel">{s.note ?? <span className="num">{s.count} rows</span>}</span>
             </Link>

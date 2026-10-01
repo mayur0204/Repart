@@ -32,7 +32,7 @@ export default async function MockCheckoutPage({ params }: { params: Promise<{ o
   ] as const;
   return (
     <Page title="Mock payment" intro="Development only. Each button sends a signed mock webhook through the real webhook handler." narrow>
-      <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <p>
           {o.title}: <span className="tabular-nums">{formatPrice(o.totalPaise)}</span>
         </p>

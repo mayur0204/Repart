@@ -38,7 +38,7 @@ export default async function ImportReportPage({ params }: { params: Promise<{ i
       </div>
 
       {row.status === "VALIDATED" ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <p className="prose-measure">
             This was a dry run. Applying checks the file again against the current catalogue and saves every row in one step. If any row has
             become invalid, nothing is saved.
@@ -50,7 +50,7 @@ export default async function ImportReportPage({ params }: { params: Promise<{ i
       {row.status === "APPLIED" && row.appliedAt ? <p className="text-steel">Applied on <DateText date={row.appliedAt} />.</p> : null}
 
       {report?.headerErrors.length ? (
-        <ul className="flex flex-col gap-1 border border-danger bg-danger-tint p-3 text-danger" role="alert">
+        <ul className="flex flex-col gap-1 rounded-lg border border-danger bg-danger-tint p-3 text-danger" role="alert">
           {report.headerErrors.map((e) => <li key={e}>{e}</li>)}
         </ul>
       ) : null}

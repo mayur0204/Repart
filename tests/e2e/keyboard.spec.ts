@@ -35,7 +35,7 @@ function expectFocusRing(stops: Stop[]) {
   for (const s of stops.filter((x) => x.tag !== "body")) {
     expect(s.visible, `${s.tag} "${s.name}" is on screen`).toBe(true);
     expect(s.outline, `${s.tag} "${s.name}" focus ring`).toMatch(/^solid 2px rgb/);
-    expect(s.radius, `${s.tag} "${s.name}" is square`).toBe("0px");
+    expect(s.radius, `${s.tag} "${s.name}" uses a Stitch radius token`).toMatch(/^(0|4|8|16|9999)px$/);
   }
 }
 

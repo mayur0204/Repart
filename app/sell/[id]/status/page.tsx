@@ -54,7 +54,7 @@ export default async function ListingStatusPage({ params }: { params: Promise<{ 
       ) : null}
 
       {status.fixes.length ? (
-        <ul className="flex flex-col border border-rule bg-surface">
+        <ul className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
           {status.fixes.map((f, i) => (
             <li key={`${f.code}-${i}`} className="flex flex-col gap-1 border-b border-rule p-4 last:border-b-0">
               <span>{f.message}</span>
@@ -67,12 +67,12 @@ export default async function ListingStatusPage({ params }: { params: Promise<{ 
           ))}
         </ul>
       ) : listing.status === "CHANGES_REQUESTED" && listing.sellerMessage ? (
-        <p className="border border-caution bg-caution-tint p-3 text-caution">{listing.sellerMessage}</p>
+        <p className="rounded-lg border border-caution bg-caution-tint p-3 text-caution">{listing.sellerMessage}</p>
       ) : null}
-      {listing.status === "REJECTED" && listing.sellerMessage ? <p className="border border-danger bg-danger-tint p-3 text-danger">{listing.sellerMessage}</p> : null}
+      {listing.status === "REJECTED" && listing.sellerMessage ? <p className="rounded-lg border border-danger bg-danger-tint p-3 text-danger">{listing.sellerMessage}</p> : null}
 
       {listing.status === "LIVE" ? (
-        <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
           <TrustBadge label={listing.trustLabel} />
           <p className="text-steel">{TRUST_TEXT[listing.trustLabel].sentence}</p>
           {listing.inspectionRequirement ? (

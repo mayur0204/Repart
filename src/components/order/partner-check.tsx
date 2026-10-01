@@ -17,7 +17,7 @@ const RESULT = { PASS: "Passed", PASS_WITH_NOTES: "Passed with notes", FAIL: "Fa
 /** The order's Partner Check: why, when, which garage, and the result with notes (M10). Never "certified" or "guaranteed". */
 export function PartnerCheckPanel({ inspection, audience, reason, waitingForSeller }: { inspection: Inspection; audience: "buyer" | "seller"; reason?: string | null; waitingForSeller?: boolean }) {
   return (
-    <section className="flex flex-col gap-2 border border-rule bg-surface p-4">
+    <section className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
       <h2 className="text-xl">Partner Check</h2>
       {(reason ?? inspection?.reason) === "AUDIT" ? <p className="text-sm">This order was picked for a routine quality check</p> : null}
       {!inspection ? (

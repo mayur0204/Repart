@@ -9,26 +9,26 @@ export type Tone = "neutral" | "fit" | "caution" | "danger";
 
 const TONE_CLASSES: Record<Tone, string> = {
   neutral: "bg-page text-ink border-rule",
-  fit: "bg-fit-tint text-fit border-fit",
-  caution: "bg-caution-tint text-caution border-caution",
-  danger: "bg-danger-tint text-danger border-danger",
+  fit: "bg-fit-tint text-fit border-fit-tint",
+  caution: "bg-caution-tint text-caution border-caution-tint",
+  danger: "bg-danger-tint text-danger border-danger-tint",
 };
 const TONE_ICON: Record<Tone, IconName> = { neutral: "info", fit: "check", caution: "alert", danger: "error" };
 
 export function Badge({ tone = "neutral", icon, children }: { tone?: Tone; icon?: IconName | false; children: ReactNode }) {
   const iconName = icon === false ? null : (icon ?? TONE_ICON[tone]);
   return (
-    <span className={cn("inline-flex items-center gap-1 border px-2 py-0.5 text-sm font-semibold", TONE_CLASSES[tone])}>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-sm font-semibold", TONE_CLASSES[tone])}>
       {iconName ? <Icon name={iconName} size="sm" /> : null}
       {children}
     </span>
   );
 }
 
-const PRICE_SIZES = { sm: "text-base", md: "text-xl", lg: "text-3xl" } as const;
+const PRICE_SIZES = { sm: "text-base", md: "text-xl", lg: "text-4xl" } as const;
 
 export function Price({ paise, size = "md", className }: { paise: number; size?: keyof typeof PRICE_SIZES; className?: string }) {
-  return <span className={cn("num font-semibold", PRICE_SIZES[size], className)}>{formatPrice(paise)}</span>;
+  return <span className={cn("num font-heading font-extrabold", PRICE_SIZES[size], className)}>{formatPrice(paise)}</span>;
 }
 
 /** Part numbers: tabular, slightly larger, semibold, letter-spaced; never monospace. */
@@ -47,7 +47,7 @@ export function DateText({ date, className }: { date: Date | string; className?:
 
 /** Loading placeholder shaped like the final content (no spinners). */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden="true" className={cn("animate-pulse bg-rule", className)} />;
+  return <div aria-hidden="true" className={cn("animate-pulse rounded-md bg-rule", className)} />;
 }
 
 export function ProgressBar({ value, max = 100, label }: { value: number; max?: number; label: string }) {
@@ -59,9 +59,9 @@ export function ProgressBar({ value, max = 100, label }: { value: number; max?: 
       aria-valuemin={0}
       aria-valuemax={max}
       aria-valuenow={value}
-      className="h-2 w-full border border-rule bg-surface"
+      className="h-2 w-full overflow-hidden rounded-full bg-rule"
     >
-      <div className="h-full bg-action transition-[width] duration-200" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-brand transition-[width] duration-200" style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function Tooltip({ content, children }: { content: string; children: Reac
         id={id}
         data-layer="floating"
         className={cn(
-          "invisible absolute bottom-full left-0 z-40 mb-2 w-max max-w-64 border border-rule bg-ink px-2 py-1 text-sm text-surface shadow-float",
+          "invisible absolute bottom-full left-0 z-40 mb-2 w-max max-w-64 rounded-md border border-ink bg-ink px-2 py-1 text-sm text-surface shadow-float",
           "group-focus-within:visible group-hover:visible",
         )}
       >

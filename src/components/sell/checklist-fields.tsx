@@ -14,7 +14,7 @@ export function ChecklistFields({ items, initial, thresholds }: { items: Checkli
 
   return (
     <div className="flex flex-col gap-4">
-      <ol className="flex flex-col border border-rule bg-surface">
+      <ol className="flex flex-col rounded-lg overflow-hidden border border-rule bg-surface">
         {items.map((item) => (
           <li key={item.id} className="flex flex-col gap-2 border-b border-rule p-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
             <input type="hidden" name={`q_${item.id}`} value={answers[item.id] ?? ""} />
@@ -31,7 +31,7 @@ export function ChecklistFields({ items, initial, thresholds }: { items: Checkli
           </li>
         ))}
       </ol>
-      <section aria-live="polite" className="flex flex-col gap-1 border border-rule bg-surface p-4">
+      <section aria-live="polite" className="flex flex-col gap-1 rounded-lg border border-rule bg-surface p-4">
         {result.unanswered.length ? (
           <p className="text-steel">Answer every question to see the grade ({result.unanswered.length} left).</p>
         ) : (

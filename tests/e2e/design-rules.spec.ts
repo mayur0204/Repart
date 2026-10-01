@@ -58,7 +58,8 @@ async function renderedDesignProblems(page: Page): Promise<string[]> {
       const s = getComputedStyle(el);
       const tag = el.tagName.toLowerCase();
       const radii = [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomLeftRadius, s.borderBottomRightRadius];
-      if (radii.some((r) => r !== "0px")) out.push(`radius on <${tag}>`);
+      // Stitch shapes only: 4px checkbox, 8px controls, 16px cards, 9999px pills.
+      if (radii.some((r) => !/^(0|4|8|16|9999)px$/.test(r))) out.push(`radius on <${tag}>`);
       if (s.boxShadow !== "none" && el.dataset.layer !== "floating") out.push(`shadow on <${tag}>`);
       if (/gradient/.test(s.backgroundImage)) out.push(`gradient on <${tag}>`);
       if (s.textTransform === "uppercase") out.push(`uppercase on <${tag}>`);

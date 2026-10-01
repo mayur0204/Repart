@@ -1,19 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Anek_Latin } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import { connection } from "next/server";
 import { BottomBar } from "@/components/layout/bottom-bar";
+import { Footer } from "@/components/layout/footer";
 import { OfflineBanner } from "@/components/layout/offline-banner";
 import { ServiceWorkerRegistration } from "@/components/layout/service-worker";
 import { TopBar } from "@/components/layout/top-bar";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
-const anek = Anek_Latin({
-  subsets: ["latin"],
-  axes: ["wdth"],
-  variable: "--font-anek",
-  display: "swap",
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["600", "700", "800"], variable: "--font-jakarta", display: "swap" });
 
 export const metadata: Metadata = {
   title: "RePart",
@@ -24,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1a2126",
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
 };
@@ -33,15 +30,16 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   await connection();
   return (
-    <html lang="en-IN" className={anek.variable}>
+    <html lang="en-IN" className={`${inter.variable} ${jakarta.variable}`}>
       <body className="min-h-dvh pb-20 lg:pb-0">
-        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-surface focus:p-3">
+        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded-md focus:bg-surface focus:p-3">
           Skip to content
         </a>
         <ToastProvider>
           <TopBar />
           <OfflineBanner />
           <div id="main">{children}</div>
+          <Footer />
           <BottomBar />
         </ToastProvider>
         <ServiceWorkerRegistration />

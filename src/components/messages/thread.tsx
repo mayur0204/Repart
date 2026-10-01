@@ -78,7 +78,7 @@ export function Thread({ conversationId, initial, reasons, actions }: { conversa
       <ol className="flex flex-col gap-3" aria-live="polite">
         {messages.length === 0 ? <li className="text-steel">No messages yet. Ask the seller about fit, condition or delivery.</li> : null}
         {messages.map((m) => (
-          <li key={m.id} className={cn("flex max-w-[85%] flex-col gap-1 border p-3 lg:max-w-[70%]", m.mine ? "self-end border-action bg-surface" : "self-start border-rule bg-surface")}>
+          <li key={m.id} className={cn("flex max-w-[85%] flex-col gap-1 rounded-lg border p-3 lg:max-w-[70%]", m.mine ? "self-end border-action bg-surface" : "self-start border-rule bg-surface")}>
             <p className="whitespace-pre-line break-words">{m.body}</p>
             {m.wasMasked ? (
               <p className="flex items-start gap-1 text-sm text-steel">
@@ -113,7 +113,7 @@ export function Thread({ conversationId, initial, reasons, actions }: { conversa
           maxLength={2000}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "msg-error" : undefined}
-          className={cn("block w-full border bg-surface px-3 py-2", error ? "border-danger" : "border-rule")}
+          className={cn("block w-full rounded-lg border bg-surface px-3 py-2", error ? "border-danger" : "border-rule")}
         />
         {error ? <p id="msg-error" role="alert" className="text-sm text-danger">{error}</p> : null}
         <div>

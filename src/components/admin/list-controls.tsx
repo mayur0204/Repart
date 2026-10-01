@@ -11,9 +11,9 @@ export function plainParams(sp: Params): Record<string, string> {
 /** A GET filter form: the URL is the state, so filtered lists can be bookmarked and shared between admins. */
 export function FilterBar({ children }: { children: ReactNode }) {
   return (
-    <form method="get" className="flex flex-wrap items-end gap-3 border border-rule bg-surface p-3">
+    <form method="get" className="flex flex-wrap items-end gap-3 rounded-lg border border-rule bg-surface p-3">
       {children}
-      <button type="submit" className="min-h-11 border border-ink bg-surface px-4 font-semibold hover:bg-page">Apply</button>
+      <button type="submit" className="min-h-11 rounded-md border border-ink bg-surface px-4 font-semibold hover:bg-page">Apply</button>
     </form>
   );
 }

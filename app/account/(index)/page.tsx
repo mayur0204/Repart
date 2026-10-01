@@ -22,7 +22,7 @@ export default async function AccountPage() {
   return (
     <Page title="Account">
       <div className="grid gap-6 lg:grid-cols-12">
-        <section className="flex flex-col gap-4 border border-rule bg-surface p-4 lg:col-span-7">
+        <section className="flex flex-col gap-4 rounded-lg border border-rule bg-surface p-4 lg:col-span-7">
           <h2 className="text-xl">Profile</h2>
           <p className="text-steel">
             Signed in with <span className="num text-ink">{maskPhone(user.phone)}</span>. To change your number, sign in with the new one and contact support.

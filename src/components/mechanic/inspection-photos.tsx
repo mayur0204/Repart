@@ -50,7 +50,7 @@ export function InspectionPhotos({ inspectionId, shots, photos, actions }: { ins
       {shots.map((s) => {
         const p = photos.find((x) => x.shotType === s.shotType && x.ready);
         return (
-          <li key={s.shotType} className="flex flex-col gap-2 border border-rule bg-surface p-3">
+          <li key={s.shotType} className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">{s.label}</span>
               {s.required ? <Badge tone="neutral" icon={false}>Required</Badge> : null}
@@ -58,9 +58,9 @@ export function InspectionPhotos({ inspectionId, shots, photos, actions }: { ins
             </div>
             {p?.url ? (
               // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL from private storage
-              <img loading="lazy" decoding="async" src={p.url} alt={s.label} className="aspect-square w-full border border-rule object-cover" />
+              <img loading="lazy" decoding="async" src={p.url} alt={s.label} className="aspect-square w-full rounded-lg border border-rule object-cover" />
             ) : null}
-            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
+            <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-ink bg-surface px-4 font-semibold hover:bg-page has-focus-visible:outline-2 has-focus-visible:outline-action">
               <input type="file" accept={PHOTO_TYPES.join(",")} capture="environment" className="sr-only" disabled={busy !== null} onChange={(e) => void upload(e.target.files?.[0], s.shotType)} />
               <Icon name="plus" size="sm" />
               {busy === s.shotType ? "Uploading" : p ? "Replace photo" : "Take photo"}

@@ -12,10 +12,10 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
           <h1 className="text-2xl">RePart didn&apos;t load</h1>
           <p>Something went wrong on our side. Nothing you saved is lost. Try again, or come back in a few minutes.</p>
           <div className="flex flex-wrap gap-3">
-            <button type="button" onClick={reset} className="min-h-11 border border-action bg-action px-4 font-semibold text-surface">
+            <button type="button" onClick={reset} className="min-h-11 rounded-md border border-brand bg-brand px-4 font-semibold text-ink">
               Try again
             </button>
-            <Link href="/" className="inline-flex min-h-11 items-center border border-ink px-4 font-semibold">
+            <Link href="/" className="inline-flex min-h-11 items-center rounded-md border border-rule bg-surface px-4 font-semibold">
               Home
             </Link>
           </div>

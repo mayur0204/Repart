@@ -22,7 +22,7 @@ export default async function PartNumbersPage({ searchParams }: { searchParams: 
 
   return (
     <Page title="Part numbers" intro="Spaces, dashes and letter case are ignored when matching, so SAMPLE-BRK 0001 and sample brk-0001 are the same number for one brand.">
-      <section className="flex max-w-xl flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex max-w-xl flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">{editing ? `Edit ${editing.display}` : "Add a part number"}</h2>
         <ActionForm
           key={editing?.id ?? "new"}
@@ -43,7 +43,7 @@ export default async function PartNumbersPage({ searchParams }: { searchParams: 
       <form method="get" role="search" className="flex max-w-xl items-end gap-2">
         <div className="flex-1">
           <label htmlFor="pn-q" className="text-sm font-semibold">Find by number or brand</label>
-          <input id="pn-q" name="q" defaultValue={q} className="mt-1 block min-h-11 w-full border border-rule bg-surface px-3" />
+          <input id="pn-q" name="q" defaultValue={q} className="mt-1 block min-h-11 w-full rounded-md border border-rule bg-surface px-3" />
         </div>
         <button type="submit" className={buttonClasses("secondary")}>Search</button>
       </form>

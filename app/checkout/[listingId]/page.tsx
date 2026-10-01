@@ -40,7 +40,7 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
 
   return (
     <Page title="Checkout" intro="You pay RePart. The seller is paid only after you receive the part and confirm it's OK." narrow>
-      <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+      <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
         <h2 className="text-xl">{priced?.listing.title ?? "Your part"}</h2>
         {delivery ? (
           saved.length ? (
@@ -72,9 +72,9 @@ export default async function CheckoutPage({ params, searchParams }: Props) {
       </section>
 
       {problem ? (
-        <p role="alert" className="border border-danger bg-danger-tint p-3 text-danger">{problem}</p>
+        <p role="alert" className="rounded-lg border border-danger bg-danger-tint p-3 text-danger">{problem}</p>
       ) : priced ? (
-        <section className="flex flex-col gap-3 border border-rule bg-surface p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-rule bg-surface p-4">
           <h2 className="text-xl">Price breakdown</h2>
           <BuyerBreakdown money={orderMoneyView(priced.quote)} />
           {priced.etaDays ? <p className="text-sm text-steel">Usually delivered in about {priced.etaDays} days after pickup.</p> : null}

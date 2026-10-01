@@ -31,7 +31,7 @@ export default async function GaragePage() {
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {vehicles.map((v) => (
-            <li key={v.id} className="flex flex-col gap-2 border border-rule bg-surface p-4">
+            <li key={v.id} className="flex flex-col gap-2 rounded-lg border border-rule bg-surface p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg">
                   {v.variant.model.make.name} {v.variant.model.name}
