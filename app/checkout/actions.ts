@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { isProductionEnv } from "@/server/env-schema";
 import { defineAction } from "@/server/http/define-action";
 import { orders } from "@/server/services";
 
@@ -30,7 +31,7 @@ export const retryPayment = defineAction({ input: z.object({ orderId: z.string()
 export const mockCheckout = defineAction(
   { input: z.object({ orderId: z.string().min(1).max(64), outcome: z.enum(["SUCCESS", "FAILED", "USER_DROPPED"]) }), access: "member" },
   async (input, ctx) => {
-    if (process.env.NODE_ENV === "production") return { ok: false, message: "Not available." };
+    if (isProductionEnv()) return { ok: false, message: "Not available." };
     await orders.mockPay(ctx.user.id, input.orderId, input.outcome);
     redirect(`/checkout/return?order=${encodeURIComponent(input.orderId)}`);
   },

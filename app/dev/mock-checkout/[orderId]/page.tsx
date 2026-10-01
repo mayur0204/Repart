@@ -5,6 +5,7 @@ import { Page } from "@/components/layout/page";
 import { formatPrice } from "@/lib/format";
 import { requireMemberPage } from "@/server/auth/current";
 import { env } from "@/server/env";
+import { isProductionEnv } from "@/server/env-schema";
 import { NotFoundError } from "@/server/http/errors";
 import { orders } from "@/server/services";
 import { mockCheckout } from "../../../checkout/actions";
@@ -13,7 +14,7 @@ export const metadata: Metadata = { title: "Mock payment | RePart" };
 
 /** Fake hosted checkout for the mock provider (PLAN.md §7.3). Never mounted in production or with Cashfree. */
 export default async function MockCheckoutPage({ params }: { params: Promise<{ orderId: string }> }) {
-  if (process.env.NODE_ENV === "production" || env().PAYMENT_PROVIDER !== "mock") notFound();
+  if (isProductionEnv() || env().PAYMENT_PROVIDER !== "mock") notFound();
   const { orderId } = await params;
   const user = await requireMemberPage(`/dev/mock-checkout/${orderId}`);
   let o;

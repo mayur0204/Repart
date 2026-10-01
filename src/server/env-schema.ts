@@ -55,6 +55,11 @@ export type ServerEnv = z.infer<typeof serverEnvSchema>;
 /** Names that must never be exposed to the browser via NEXT_PUBLIC_. */
 export const SECRET_NAME_PATTERN = /(KEY|SECRET|TOKEN|PASSWORD|DATABASE|DIRECT_URL|SERVICE_ROLE|CASHFREE)/i;
 
+/** Vercel Preview builds run with NODE_ENV=production, so on Vercel trust VERCEL_ENV instead. */
+export function isProductionEnv(source: Record<string, string | undefined> = process.env): boolean {
+  return source.VERCEL_ENV ? source.VERCEL_ENV === "production" : source.NODE_ENV === "production";
+}
+
 /** Parse env and return a readable error that never echoes secret values. */
 export function parseServerEnv(source: Record<string, string | undefined>): ServerEnv {
   const result = serverEnvSchema.safeParse(source);
@@ -70,7 +75,7 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
   if (!result.data.CASHFREE_APP_ID !== !result.data.CASHFREE_SECRET_KEY) {
     throw new Error("Invalid environment configuration:\n  - CASHFREE_APP_ID and CASHFREE_SECRET_KEY must be set together");
   }
-  if (result.data.NODE_ENV === "production" && result.data.PAYMENT_PROVIDER === "mock") {
+  if (isProductionEnv(source) && result.data.PAYMENT_PROVIDER === "mock") {
     throw new Error("Invalid environment configuration:\n  - PAYMENT_PROVIDER: mock is not allowed in production");
   }
   return result.data;
