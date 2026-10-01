@@ -29,6 +29,7 @@ import * as publicService from "./search/public";
 import * as searchService from "./search/search";
 import * as riskReview from "./risk/review";
 import * as settingsService from "./settings/settings";
+import * as emailAuthService from "./auth/email-auth";
 import * as signInService from "./auth/sign-in";
 import * as catalogueService from "./catalogue/vehicles";
 import * as consentService from "./consent/consent";
@@ -52,6 +53,12 @@ export const signIn = bind({
   resend: signInService.resendCode,
   verify: signInService.verifyPhoneSignIn,
   pendingChallenge: signInService.getPendingChallenge,
+});
+
+export const emailAuth = bind({
+  signUp: emailAuthService.signUpWithEmail,
+  signIn: emailAuthService.signInWithEmail,
+  finishAccount: emailAuthService.finishAccount,
 });
 
 export const consent = bind({

@@ -68,6 +68,13 @@ export async function consumeRateLimit(db: Pick<PrismaClient, "settingsVersion">
   await consumeWithLimit(name, key, limits[name]);
 }
 
+/** Throws RateLimitedError when `key` has no points left, without consuming one (pair with consumeRateLimit on failure). */
+export async function assertWithinRateLimit(db: Pick<PrismaClient, "settingsVersion">, name: RateLimitName, key: string): Promise<void> {
+  const limit = (await rateLimitsFromSettings(db))[name];
+  const res = await limiterFor(name, limit).get(key);
+  if (res && res.consumedPoints >= limit.points) throw new RateLimitedError(Math.ceil(res.msBeforeNext / 1000));
+}
+
 export function clearRateLimitSettingsCache(): void {
   cachedLimits = undefined;
 }

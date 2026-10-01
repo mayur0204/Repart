@@ -81,9 +81,12 @@ export function parseServerEnv(source: Record<string, string | undefined>): Serv
   return result.data;
 }
 
+/** Keys that are designed to be public. The Supabase publishable key only identifies the project; RLS and the server guard data. */
+const PUBLIC_KEY_NAMES = new Set(["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]);
+
 /** Returns NEXT_PUBLIC_* variable names that look like secrets. */
 export function findExposedSecrets(source: Record<string, string | undefined>): string[] {
   return Object.keys(source).filter(
-    (name) => name.startsWith("NEXT_PUBLIC_") && SECRET_NAME_PATTERN.test(name.slice("NEXT_PUBLIC_".length)),
+    (name) => name.startsWith("NEXT_PUBLIC_") && !PUBLIC_KEY_NAMES.has(name) && SECRET_NAME_PATTERN.test(name.slice("NEXT_PUBLIC_".length)),
   );
 }

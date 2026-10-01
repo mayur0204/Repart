@@ -44,6 +44,20 @@ export async function resolveSession(db: Db, token: string, now = new Date()): P
   return { sessionId: session.id, user: { id, phone, name, email, roles } };
 }
 
+/**
+ * The RePart user linked to a verified Supabase Auth user id, or null when unlinked or not ACTIVE.
+ * Roles come from the RePart User row, never from Supabase.
+ */
+export async function resolveAuthUser(db: Pick<PrismaClient, "user">, authUserId: string): Promise<SessionUser | null> {
+  const user = await db.user.findUnique({
+    where: { supabaseAuthUserId: authUserId },
+    select: { id: true, phone: true, name: true, email: true, roles: true, status: true },
+  });
+  if (!user || user.status !== "ACTIVE") return null;
+  const { id, phone, name, email, roles } = user;
+  return { id, phone, name, email, roles };
+}
+
 export async function revokeSession(db: Db, token: string): Promise<void> {
   await db.session.deleteMany({ where: { tokenHash: hashToken(token) } });
 }

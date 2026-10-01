@@ -7,10 +7,17 @@ import { withNext } from "@/lib/return-to";
 import { db } from "../db";
 import { hasRequiredConsent } from "../services/consent/consent";
 import { clearSessionCookie, readSessionToken } from "./cookies";
-import { resolveSession, revokeSession, type SessionUser } from "./session";
+import { resolveAuthUser, resolveSession, revokeSession, type SessionUser } from "./session";
+import { createSupabaseServerClient, currentAuthUserId } from "./supabase";
 
-/** The signed-in user for this request, or null. Cached per request. */
+/**
+ * The signed-in user for this request, or null. Cached per request.
+ * Identity: a verified Supabase Auth session, mapped to the RePart User (whose roles and status decide access).
+ * Falls back to a RePart session cookie, which the E2E fixtures create directly.
+ */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  const authUserId = await currentAuthUserId();
+  if (authUserId) return resolveAuthUser(db, authUserId);
   const token = await readSessionToken();
   if (!token) return null;
   return (await resolveSession(db, token))?.user ?? null;
@@ -26,8 +33,9 @@ export async function needsOnboardingById(userId: string): Promise<boolean> {
   return !user?.name || !(await hasRequiredConsent(db, userId));
 }
 
-/** Revokes the session in the cookie (if any) and clears the cookie. */
+/** Signs out of Supabase Auth (clears its cookies) and revokes any RePart session cookie. */
 export async function endCurrentSession(): Promise<void> {
+  await (await createSupabaseServerClient())?.auth.signOut({ scope: "local" });
   const token = await readSessionToken();
   if (token) await revokeSession(db, token);
   await clearSessionCookie();

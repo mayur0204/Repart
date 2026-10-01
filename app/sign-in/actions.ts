@@ -1,38 +1,49 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { safeNext, withNext } from "@/lib/return-to";
-import { clearOtpChallengeCookie, readOtpChallengeId, setOtpChallengeCookie, setSessionCookie } from "@/server/auth/cookies";
-import { endCurrentSession, needsOnboardingById, userAgent } from "@/server/auth/current";
+import { endCurrentSession, needsOnboardingById } from "@/server/auth/current";
+import { createSupabaseServerClient } from "@/server/auth/supabase";
+import { env } from "@/server/env";
 import { defineAction } from "@/server/http/define-action";
 import { UserError } from "@/server/http/errors";
-import { garage, profile, signIn } from "@/server/services";
+import { emailAuth, garage, profile } from "@/server/services";
 import { isConsentPurpose } from "@/server/services/consent/consent";
 
 const next = z.string().optional();
 
-export const requestCode = defineAction({ input: z.object({ phone: z.string().default(""), next }), access: "public" }, async (input, ctx) => {
-  const { challengeId } = await signIn.start({ phone: input.phone, ip: ctx.ip });
-  await setOtpChallengeCookie(challengeId);
-  redirect(withNext("/sign-in/verify", input.next));
+/** Supabase Auth for this request. Identity only: roles and status come from the RePart User. */
+async function supabaseAuth() {
+  const supabase = await createSupabaseServerClient();
+  if (!supabase) throw new UserError("Email sign-in isn't set up on this server yet.");
+  return supabase.auth;
+}
+
+const credentials = { email: z.string().default(""), password: z.string().default(""), next };
+
+export const signInWithPassword = defineAction({ input: z.object(credentials), access: "public" }, async (input) => {
+  const result = await emailAuth.signIn(await supabaseAuth(), input);
+  if (result.status === "needs-phone") redirect(withNext("/sign-in/finish-account", input.next));
+  if (await needsOnboardingById(result.userId)) redirect(withNext("/sign-in/about-you", input.next));
+  redirect(safeNext(input.next));
 });
 
-export const resendCode = defineAction({ input: z.object({}), access: "public" }, async (_input, ctx) => {
-  const challengeId = await readOtpChallengeId();
-  if (!challengeId) throw new UserError("Start again by entering your phone number.");
-  const fresh = await signIn.resend({ challengeId, ip: ctx.ip });
-  await setOtpChallengeCookie(fresh.challengeId);
-  return { ok: true, message: "New code sent" };
+/** One-time phone step for a signed-in Supabase login that has no RePart User yet. */
+export const finishAccount = defineAction({ input: z.object({ phone: z.string().default(""), next }), access: "public" }, async (input) => {
+  const { data } = await (await supabaseAuth()).getClaims();
+  if (!data?.claims) redirect(withNext("/sign-in", input.next));
+  const { userId } = await emailAuth.finishAccount({ id: data.claims.sub, email: data.claims.email }, input);
+  if (await needsOnboardingById(userId)) redirect(withNext("/sign-in/about-you", input.next));
+  redirect(safeNext(input.next));
 });
 
-export const verifyCode = defineAction({ input: z.object({ code: z.string().trim().default(""), next }), access: "public" }, async (input) => {
-  const challengeId = await readOtpChallengeId();
-  if (!challengeId) throw new UserError("Your code request has expired. Enter your phone number again.");
-  const result = await signIn.verify({ challengeId, code: input.code, userAgent: await userAgent() });
-  await setSessionCookie(result.token);
-  await clearOtpChallengeCookie();
-
+export const createAccount = defineAction({ input: z.object({ ...credentials, phone: z.string().default("") }), access: "public" }, async (input, ctx) => {
+  // The confirmation link (when email confirmation is on) returns to this deployment, local or Vercel Preview.
+  const origin = (await headers()).get("origin") ?? env().APP_BASE_URL;
+  const result = await emailAuth.signUp(await supabaseAuth(), input, { ip: ctx.ip, emailRedirectTo: withNext(`${origin}/auth/callback`, input.next) });
+  if (result.status === "check-email") return { ok: true, message: "Check your email for a confirmation link, then sign in." };
   if (await needsOnboardingById(result.userId)) redirect(withNext("/sign-in/about-you", input.next));
   redirect(safeNext(input.next));
 });
